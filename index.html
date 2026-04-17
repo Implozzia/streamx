@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamX // Streamer Partnership Agency</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            black: '#030508',
+                            gray: '#12151A',
+                            cyan: '#00F0FF',
+                            magenta: '#FF003C',
+                            yellow: '#FCEE0A',
+                            dark: '#080c11'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Rajdhani', 'sans-serif'],
+                        tech: ['Chakra Petch', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'cyber-grid': 'linear-gradient(to right, #ffffff05 1px, transparent 1px), linear-gradient(to bottom, #ffffff05 1px, transparent 1px)',
+                        'cyber-glow': 'radial-gradient(circle at center, rgba(0, 240, 255, 0.15) 0%, rgba(3, 5, 8, 0) 70%)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --cut-size: 16px;
+        }
+
+        body {
+            background-color: #030508;
+            color: #ffffff;
+            scrollbar-width: thin;
+            scrollbar-color: #00F0FF #030508;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030508;
+            border-left: 1px solid #12151A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00F0FF;
+        }
+
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+        }
+
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        .cyber-panel {
+            clip-path: polygon(
+                0 0,
+                calc(100% - var(--cut-size)) 0,
+                100% var(--cut-size),
+                100% 100%,
+                var(--cut-size) 100%,
+                0 calc(100% - var(--cut-size))
+            );
+        }
+
+        .cyber-panel-tr {
+            clip-path: polygon(
+                0 0,
+                calc(100% - 24px) 0,
+                100% 24px,
+                100% 100%,
+                0 100%
+            );
+        }
+
+        .cyber-button {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .cyber-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px #FF003C;
+            background-color: #00F0FF;
+            color: #030508;
+        }
+
+        .cyber-button-alt:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px #00F0FF;
+        }
+
+        @keyframes glitch-anim {
+            0% { clip: rect(10px, 9999px, 44px, 0); }
+            5% { clip: rect(66px, 9999px, 88px, 0); }
+            10% { clip: rect(12px, 9999px, 98px, 0); }
+            15% { clip: rect(82px, 9999px, 21px, 0); }
+            20% { clip: rect(2px, 9999px, 5px, 0); }
+            25% { clip: rect(38px, 9999px, 49px, 0); }
+            30% { clip: rect(69px, 9999px, 82px, 0); }
+            35% { clip: rect(4px, 9999px, 19px, 0); }
+            40% { clip: rect(96px, 9999px, 2px, 0); }
+            45% { clip: rect(16px, 9999px, 83px, 0); }
+            50% { clip: rect(24px, 9999px, 12px, 0); }
+            55% { clip: rect(89px, 9999px, 72px, 0); }
+            60% { clip: rect(33px, 9999px, 11px, 0); }
+            65% { clip: rect(74px, 9999px, 64px, 0); }
+            70% { clip: rect(43px, 9999px, 3px, 0); }
+            75% { clip: rect(81px, 9999px, 91px, 0); }
+            80% { clip: rect(12px, 9999px, 41px, 0); }
+            85% { clip: rect(93px, 9999px, 54px, 0); }
+            90% { clip: rect(62px, 9999px, 27px, 0); }
+            95% { clip: rect(31px, 9999px, 86px, 0); }
+            100% { clip: rect(51px, 9999px, 14px, 0); }
+        }
+
+        .glitch-hover:hover {
+            position: relative;
+        }
+        .glitch-hover:hover::before {
+            content: attr(data-text);
+            position: absolute;
+            left: -2px;
+            text-shadow: 2px 0 #FF003C;
+            top: 0;
+            color: white;
+            background: #030508;
+            overflow: hidden;
+            clip: rect(0, 900px, 0, 0);
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+        }
+
+        .sys-ui-line {
+            position: relative;
+        }
+        .sys-ui-line::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, #00F0FF, transparent);
+            opacity: 0.5;
+        }
+
+        .step-connector {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, #333 0, #333 4px, transparent 4px, transparent 8px);
+            z-index: -1;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .cursor-blink { animation: blink 1s step-end infinite; }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyber-cyan selection:text-cyber-black relative">
+
+    <!-- Global FX Layers -->
+    <div class="fixed inset-0 bg-cyber-grid bg-grid-pattern z-[-2] opacity-20"></div>
+    <div class="fixed inset-0 scanlines z-50 pointer-events-none opacity-[0.15]"></div>
+    <div class="fixed top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyber-magenta via-cyber-cyan to-cyber-magenta z-50"></div>
+
+    <!-- System Status Bar -->
+    <div class="fixed top-2 left-0 w-full z-40 px-6 flex justify-between items-center pointer-events-none">
+        <div class="font-mono text-[10px] text-cyber-cyan tracking-[0.2em] flex gap-4 opacity-70">
+            <span>SYS.OP // ACTIVE</span>
+            <span class="hidden md:inline">NET // ENCRYPTED</span>
+            <span class="hidden lg:inline text-cyber-magenta">LNK: STOKITY_SECURE</span>
+        </div>
+        <div class="font-mono text-[10px] text-white/50 tracking-widest hidden sm:block">
+            VER 2.4.1_BETA
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="relative z-30 pt-10 pb-6 px-6 md:px-12 max-w-7xl mx-auto flex justify-between items-end sys-ui-line">
+        <div class="flex flex-col">
+            <span class="font-mono text-xs text-cyber-magenta mb-1 tracking-widest">AGENCY.PROTOCOL</span>
+            <div class="font-display text-4xl font-bold tracking-tight text-white flex items-center gap-1 group cursor-pointer">
+                STREAM<span class="text-cyber-cyan group-hover:text-cyber-magenta transition-colors duration-300">[X]</span>
+            </div>
+        </div>
+        <div class="hidden md:flex gap-8 font-tech text-sm tracking-widest text-white/70 uppercase">
+            <a href="#process" class="hover:text-cyber-cyan transition-colors">Process</a>
+            <a href="#benefits" class="hover:text-cyber-cyan transition-colors">Benefits</a>
+            <a href="#requirements" class="hover:text-cyber-cyan transition-colors">Reqs</a>
+        </div>
+        <a href="#cta" class="cyber-button bg-white text-cyber-black font-tech font-bold uppercase text-sm px-6 py-2 border border-transparent hover:border-cyber-cyan hidden sm:block">
+            Initialize
+        </a>
+    </nav>
+
+    <main class="relative z-10 w-full overflow-hidden">
+
+        <!-- SECTION 1: HERO -->
+        <section class="relative pt-20 pb-32 px-6 md:px-12 max-w-7xl mx-auto flex flex-col items-start min-h-[85vh] justify-center">
+
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyber-glow pointer-events-none rounded-full z-[-1]"></div>
+
+            <div class="flex items-center gap-3 mb-6 relative">
+                <div class="w-8 h-[1px] bg-cyber-cyan"></div>
+                <div class="font-mono text-cyber-cyan text-xs tracking-[0.3em] uppercase">Partnership Interface</div>
+                <div class="w-8 h-[1px] bg-cyber-cyan"></div>
+            </div>
+
+            <div class="flex flex-col z-10 relative w-full">
+                <svg class="absolute -left-12 -top-10 w-64 h-64 text-cyber-cyan/5 -z-10" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 4"/>
+                    <path d="M 10 50 L 90 50 M 50 10 L 50 90" stroke="currentColor" stroke-width="0.5"/>
+                </svg>
+
+                <h1 class="font-display font-bold text-[14vw] sm:text-[10vw] md:text-8xl lg:text-[110px] leading-[0.85] uppercase tracking-tighter text-white flex flex-col">
+                    <span class="opacity-90 hover:opacity-100 transition-opacity">We find brands.</span>
+                    <span class="opacity-90 hover:opacity-100 transition-opacity ml-0 md:ml-[10%]">You stream.</span>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-[#0099ff] ml-0 md:ml-[20%] glow-text animate-pulse">We pay.</span>
+                </h1>
+            </div>
+
+            <p class="font-tech text-lg md:text-xl text-white/70 max-w-2xl mt-10 border-l-2 border-cyber-magenta pl-6 py-2">
+                The apex partnership agency for <span class="text-white font-bold">Twitch, YouTube, and TikTok</span> streamers. Stop searching for integrations. Start broadcasting.
+            </p>
+
+            <div class="mt-14 flex flex-col sm:flex-row gap-6 items-center">
+                <a href="#cta" class="cyber-button bg-cyber-cyan text-cyber-black font-display font-bold text-xl px-10 py-5 w-full sm:w-auto text-center uppercase tracking-wider relative overflow-hidden group">
+                    <span class="relative z-10">Start Earning
+                        <svg class="inline-block w-5 h-5 ml-2 -mt-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </span>
+                </a>
+                <div class="font-mono text-xs text-white/40 tracking-widest flex flex-col gap-1">
+                    <span>> SECURE FRAMEWORK</span>
+                    <span>> NO HIDDEN FEES</span>
+                </div>
+            </div>
+
+            <!-- Scroll Indicator -->
+            <div class="absolute bottom-10 left-6 md:left-12 flex flex-col items-center gap-2 opacity-50">
+                <span class="font-mono text-[10px] tracking-widest uppercase origin-left transform -rotate-90 translate-y-16">Scroll</span>
+                <div class="w-[1px] h-16 bg-white shrink-0"></div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: STATS STRIP -->
+        <section class="border-y border-cyber-cyan/20 bg-cyber-dark relative z-20">
+            <div class="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-cyber-cyan/20">
+
+                <div class="flex-1 py-8 md:py-12 px-4 hover:bg-white/[0.02] transition-colors relative group">
+                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4 text-cyber-magenta" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M5 12h14M12 5l7 7-7 7" stroke-width="2" stroke-linecap="square"/>
+                        </svg>
+                    </div>
+                    <div class="font-mono text-sm text-cyber-cyan mb-2 tracking-widest">DATAPOINT_01</div>
+                    <div class="font-tech font-bold text-5xl md:text-6xl text-white glitch-hover" data-text="120+">120+</div>
+                    <div class="font-display uppercase text-white/50 text-xl mt-2 font-semibold">Active Streamers</div>
+                </div>
+
+                <div class="flex-1 py-8 md:py-12 px-4 md:px-10 hover:bg-white/[0.02] transition-colors relative group">
+                    <div class="font-mono text-sm text-cyber-cyan mb-2 tracking-widest flex justify-between">
+                        <span>DATAPOINT_02</span>
+                        <span class="text-cyber-yellow text-[10px] border border-cyber-yellow/30 px-1">VERIFIED</span>
+                    </div>
+                    <div class="font-mono font-bold text-5xl md:text-6xl text-white flex items-end">
+                        ₽4.2M<span class="w-3 h-8 bg-cyber-magenta ml-1 cursor-blink mb-1 inline-block"></span>
+                    </div>
+                    <div class="font-display uppercase text-white/50 text-xl mt-2 font-semibold">Total Paid Out</div>
+                </div>
+
+                <div class="flex-1 py-8 md:py-12 px-4 md:px-10 hover:bg-white/[0.02] transition-colors relative group">
+                    <div class="font-mono text-sm text-cyber-cyan mb-2 tracking-widest">DATAPOINT_03</div>
+                    <div class="font-tech font-bold text-4xl md:text-5xl text-white leading-tight uppercase">Every<br>Friday</div>
+                    <div class="font-display uppercase text-cyber-cyan text-xl mt-2 font-semibold flex items-center gap-2">
+                        <span class="w-2 h-2 bg-cyber-cyan rounded-full animate-ping"></span> Reliable Payouts
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 3: HOW IT WORKS -->
+        <section id="process" class="py-32 px-6 md:px-12 max-w-7xl mx-auto relative">
+            <div class="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-6">
+                <div>
+                    <h2 class="font-display text-5xl md:text-7xl font-bold uppercase text-white tracking-tight">Execution<br>Pipeline</h2>
+                </div>
+                <div class="font-mono text-sm text-white/40 max-w-xs mt-6 md:mt-0 text-right">
+                    STANDARD OPERATING PROCEDURE <br> [ 5 - STEP DEPLOYMENT ]
+                </div>
+            </div>
+
+            <div class="relative grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-4 mt-16">
+                <div class="hidden md:block step-connector"></div>
+
+                <!-- Step 1 -->
+                <div class="relative pt-8 hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-12 h-12 bg-cyber-dark border border-cyber-cyan text-cyber-cyan font-mono text-xl flex items-center justify-center absolute top-0 left-0 md:left-1/2 md:-translate-x-1/2 z-10 shadow-[0_0_15px_rgba(0,240,255,0.2)]">01</div>
+                    <div class="cyber-panel bg-[#0c1016] border border-white/5 p-6 h-full text-center mt-6">
+                        <h3 class="font-tech font-bold text-xl text-white uppercase mb-3">Initiate</h3>
+                        <p class="font-body text-sm text-white/60 leading-relaxed">Send us your channel stats. Followers, avg viewers, platforms — raw data only.</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative pt-8 hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-12 h-12 bg-cyber-dark border border-white/20 text-white font-mono text-xl flex items-center justify-center absolute top-0 left-0 md:left-1/2 md:-translate-x-1/2 z-10">02</div>
+                    <div class="cyber-panel bg-[#0c1016] border border-white/5 p-6 h-full text-center mt-6">
+                        <h3 class="font-tech font-bold text-xl text-white uppercase mb-3">Negotiate</h3>
+                        <p class="font-body text-sm text-white/60 leading-relaxed">We review the numbers and agree on a fixed price per stream. No surprises.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative pt-8 hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-12 h-12 bg-cyber-dark border border-cyber-magenta text-cyber-magenta font-mono text-xl flex items-center justify-center absolute top-0 left-0 md:left-1/2 md:-translate-x-1/2 z-10 shadow-[0_0_15px_rgba(255,0,60,0.2)]">03</div>
+                    <div class="cyber-panel bg-[#0c1016] border border-cyber-magenta/20 p-6 h-full text-center mt-6">
+                        <h3 class="font-tech font-bold text-xl text-white uppercase mb-3 text-cyber-magenta">Integrate</h3>
+                        <p class="font-body text-sm text-white/60 leading-relaxed">We set up your <span class="text-white font-mono text-xs bg-white/10 px-1 py-[2px]">Stokity</span> account and generate your unique referral link.</p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="relative pt-8 hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-12 h-12 bg-cyber-dark border border-white/20 text-white font-mono text-xl flex items-center justify-center absolute top-0 left-0 md:left-1/2 md:-translate-x-1/2 z-10">04</div>
+                    <div class="cyber-panel bg-[#0c1016] border border-white/5 p-6 h-full text-center mt-6">
+                        <h3 class="font-tech font-bold text-xl text-white uppercase mb-3">Validate</h3>
+                        <p class="font-body text-sm text-white/60 leading-relaxed">Run 1-2 test streams. We verify metric alignment and audience fit.</p>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="relative pt-8 hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-12 h-12 bg-cyber-cyan border border-cyber-cyan text-cyber-black font-mono font-bold text-xl flex items-center justify-center absolute top-0 left-0 md:left-1/2 md:-translate-x-1/2 z-10 shadow-[0_0_20px_rgba(0,240,255,0.4)]">05</div>
+                    <div class="cyber-panel bg-cyber-cyan/5 border border-cyber-cyan/30 p-6 h-full text-center mt-6 shadow-[inset_0_0_20px_rgba(0,240,255,0.05)]">
+                        <h3 class="font-tech font-bold text-xl text-cyber-cyan uppercase mb-3">Get Paid</h3>
+                        <p class="font-body text-sm text-white/80 leading-relaxed">We pay you. If all good — weekly payouts every Friday, automatically.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 4: WHAT WE OFFER -->
+        <section id="benefits" class="py-32 px-6 md:px-12 max-w-7xl mx-auto">
+
+            <div class="text-center mb-16">
+                <span class="font-mono text-cyber-magenta text-sm tracking-[0.2em] uppercase border border-cyber-magenta px-3 py-1 mb-4 inline-block">System Advantages</span>
+                <h2 class="font-display text-5xl md:text-6xl font-bold uppercase text-white mt-4">What We<br>Offer</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Card 1 — Brand Matching (spans 2 cols) -->
+                <div class="cyber-panel-tr bg-[#080b0f] border border-white/10 hover:border-cyber-cyan/50 p-8 md:p-10 lg:col-span-2 group transition-all duration-300 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-5 group-hover:opacity-20 transition-opacity duration-500">
+                        <svg class="w-64 h-64 text-cyber-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2v20M2 12h20"/>
+                        </svg>
+                    </div>
+                    <div class="w-14 h-14 bg-cyber-cyan/10 flex items-center justify-center border border-cyber-cyan/30 mb-6 group-hover:bg-cyber-cyan group-hover:text-cyber-black transition-colors">
+                        <!-- Target/crosshair icon -->
+                        <svg class="w-6 h-6 text-cyber-cyan group-hover:text-cyber-black transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-bold text-3xl text-white uppercase mb-4">Brand Matching</h3>
+                    <p class="font-body text-white/50 text-lg max-w-md">We pick brands that fit your audience. No random assignments — your demographic data matched with brands that actually convert for your viewers.</p>
+                </div>
+
+                <!-- Card 2 — No Prepayments -->
+                <div class="cyber-panel bg-gradient-to-br from-[#080b0f] to-[#120508] border border-cyber-magenta/30 hover:border-cyber-magenta p-8 group transition-all duration-300 relative">
+                    <div class="w-14 h-14 bg-cyber-magenta/10 flex items-center justify-center border border-cyber-magenta/30 mb-6 group-hover:scale-110 transition-transform">
+                        <!-- Shield icon -->
+                        <svg class="w-6 h-6 text-cyber-magenta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M9 12l2 2 4-4" stroke-linecap="square"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-bold text-2xl text-white uppercase mb-4">No Prepayments</h3>
+                    <p class="font-body text-white/50 text-base">You pay nothing upfront. We pay <span class="text-white font-semibold">after completed streams only</span>. Zero risk on your end.</p>
+                </div>
+
+                <!-- Card 3 — Personal Manager -->
+                <div class="cyber-panel bg-[#080b0f] border border-white/10 hover:border-cyber-cyan/50 p-8 group transition-all duration-300">
+                    <div class="w-14 h-14 bg-white/5 flex items-center justify-center border border-white/20 mb-6 group-hover:border-cyber-cyan transition-colors">
+                        <!-- Headset/support icon -->
+                        <svg class="w-6 h-6 text-white group-hover:text-cyber-cyan transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-bold text-2xl text-white uppercase mb-4">Personal Manager</h3>
+                    <p class="font-body text-white/50 text-base">Help, tips, and recommendations always available. One direct contact. Issues resolved fast, not in days.</p>
+                </div>
+
+                <!-- Card 4 — Weekly Payouts (spans 2 cols) -->
+                <div class="cyber-panel-tr bg-[#00F0FF]/5 border border-[#00F0FF]/30 p-8 md:p-10 lg:col-span-2 group transition-all duration-300">
+                    <div class="w-14 h-14 bg-cyber-cyan flex items-center justify-center mb-6">
+                        <!-- Calendar/payment icon -->
+                        <svg class="w-6 h-6 text-cyber-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="0"/>
+                            <path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-display font-bold text-3xl text-cyber-cyan uppercase mb-4">Weekly Friday Payouts</h3>
+                    <p class="font-body text-white/70 text-lg max-w-md">Every Friday. No delays. Automated transfers — cash flow you can plan your life around. No waiting, no chasing invoices.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 5: REQUIREMENTS (Terminal Theme) -->
+        <section id="requirements" class="py-32 bg-[#020203] relative border-y border-white/5">
+            <div class="absolute inset-0 flex items-center justify-center h-full w-full opacity-[0.03] pointer-events-none overflow-hidden">
+                <span class="font-mono text-[40vw] font-bold leading-none select-none">REQ</span>
+            </div>
+
+            <div class="max-w-4xl mx-auto px-6 relative z-10">
+                <div class="text-center mb-12">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold uppercase text-white">Who We Work With</h2>
+                    <p class="font-mono text-white/40 text-sm mt-3 tracking-widest">PARTNER REQUIREMENTS // v2.4</p>
+                </div>
+
+                <!-- Terminal Window -->
+                <div class="bg-[#050608] border border-white/20 overflow-hidden shadow-2xl shadow-black">
+                    <!-- Terminal Header -->
+                    <div class="bg-white/10 px-4 py-2 border-b border-white/20 flex gap-2 items-center">
+                        <div class="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#27C93F]"></div>
+                        <div class="font-mono text-xs text-white/50 ml-4">root@streamx-core:~</div>
+                    </div>
+                    <!-- Terminal Body -->
+                    <div class="p-6 md:p-10 font-mono text-sm md:text-base leading-relaxed text-[#00F0FF]/80">
+                        <p class="mb-4 text-white/40">// Checking partner requirements...</p>
+                        <p class="mb-4"><span class="text-cyber-magenta">root@streamx:~$</span> ./check_requirements.sh</p>
+
+                        <div class="space-y-4 mt-6">
+                            <div class="flex gap-4">
+                                <span class="text-cyber-yellow shrink-0">[OK]</span>
+                                <span class="text-white">Active streamer on any platform <span class="text-white/40 text-xs ml-2">(Twitch, YouTube, TikTok)</span></span>
+                            </div>
+                            <div class="flex gap-4">
+                                <span class="text-cyber-yellow shrink-0">[OK]</span>
+                                <span class="text-white">Consistent streaming schedule <span class="text-white/40 text-xs ml-2">(Regular broadcasts, no dead air)</span></span>
+                            </div>
+                            <div class="flex gap-4">
+                                <span class="text-cyber-yellow shrink-0">[OK]</span>
+                                <span class="text-white">Organic audience growth <span class="text-white/40 text-xs ml-2">(No view-botting)</span></span>
+                            </div>
+                            <div class="flex gap-4">
+                                <span class="text-cyber-yellow shrink-0">[OK]</span>
+                                <span class="text-white">Ready for calibration phase <span class="text-white/40 text-xs ml-2">(1-2 test streams to start)</span></span>
+                            </div>
+                        </div>
+
+                        <p class="mt-8 flex items-center">
+                            <span class="text-cyber-magenta">root@streamx:~$</span><span class="w-2 h-5 bg-white ml-2 cursor-blink inline-block"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: TESTIMONIALS -->
+        <section class="py-32 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden relative">
+            <h2 class="font-display text-4xl md:text-5xl font-bold uppercase text-white mb-16 text-center tracking-wide">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-white">Verified Streamers</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                <!-- Quote 1 -->
+                <div class="cyber-panel bg-white/[0.02] border border-white/10 p-6 md:p-8 hover:bg-white/[0.05] transition-colors relative">
+                    <div class="absolute top-4 right-4 opacity-20">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 32 32">
+                            <path d="M10 8c-3.3 0-6 2.7-6 6v10h10V14H8c0-1.1.9-2 2-2h2V8h-2zm16 0c-3.3 0-6 2.7-6 6v10h10V14h-6c0-1.1.9-2 2-2h2V8h-2z"/>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-4 mb-6 border-b border-white/5 pb-4">
+                        <div class="w-12 h-12 bg-cyber-cyan/20 border border-cyber-cyan flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6 text-cyber-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-display font-bold text-white tracking-widest uppercase">@GhostProtocol</div>
+                            <div class="font-mono text-[10px] text-cyber-cyan">Twitch // 450 AVG CCV</div>
+                        </div>
+                    </div>
+                    <p class="font-body text-white/70 italic text-sm leading-relaxed">
+                        "Switched to StreamX after dealing with agencies that required prepay. The <span class="text-white font-bold">Friday payouts are on time, every time</span>. Testing phase was seamless. Zero hassle."
+                    </p>
+                </div>
+
+                <!-- Quote 2 (Offset) -->
+                <div class="cyber-panel bg-white/[0.02] border border-cyber-cyan/30 shadow-[0_0_20px_rgba(0,240,255,0.05)] p-6 md:p-8 hover:bg-white/[0.05] transition-colors relative md:translate-y-8">
+                    <div class="absolute top-4 right-4 opacity-20">
+                        <svg class="w-8 h-8 text-cyber-cyan" fill="currentColor" viewBox="0 0 32 32">
+                            <path d="M10 8c-3.3 0-6 2.7-6 6v10h10V14H8c0-1.1.9-2 2-2h2V8h-2zm16 0c-3.3 0-6 2.7-6 6v10h10V14h-6c0-1.1.9-2 2-2h2V8h-2z"/>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-4 mb-6 border-b border-cyber-cyan/20 pb-4">
+                        <div class="w-12 h-12 bg-white/5 border border-white/20 flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-display font-bold text-white tracking-widest uppercase">@NeonValkyrie</div>
+                            <div class="font-mono text-[10px] text-cyber-magenta">YouTube // 1.2M SUBS</div>
+                        </div>
+                    </div>
+                    <p class="font-body text-white/70 italic text-sm leading-relaxed">
+                        "My personal manager handled everything. I drop my Stokity link in chat, do the read, and focus on content. <span class="text-white font-bold">Earnings scale perfectly</span> with my metrics."
+                    </p>
+                </div>
+
+                <!-- Quote 3 -->
+                <div class="cyber-panel bg-white/[0.02] border border-white/10 p-6 md:p-8 hover:bg-white/[0.05] transition-colors relative">
+                    <div class="absolute top-4 right-4 opacity-20">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 32 32">
+                            <path d="M10 8c-3.3 0-6 2.7-6 6v10h10V14H8c0-1.1.9-2 2-2h2V8h-2zm16 0c-3.3 0-6 2.7-6 6v10h10V14h-6c0-1.1.9-2 2-2h2V8h-2z"/>
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-4 mb-6 border-b border-white/5 pb-4">
+                        <div class="w-12 h-12 bg-cyber-magenta/10 border border-cyber-magenta/30 flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6 text-cyber-magenta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-display font-bold text-white tracking-widest uppercase">@RogueStatus</div>
+                            <div class="font-mono text-[10px] text-cyber-cyan">TikTok // 800K FLLW</div>
+                        </div>
+                    </div>
+                    <p class="font-body text-white/70 italic text-sm leading-relaxed">
+                        "They matched me with brands my chat actually likes. Higher conversions, bigger payouts. Their <span class="text-white font-bold border-b border-cyber-cyan">brand matching is genuinely different</span> from anything I've tried."
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 7: CTA -->
+        <section id="cta" class="py-32 relative border-t-2 border-cyber-magenta/20 overflow-hidden bg-cyber-dark">
+            <div class="absolute top-0 right-0 w-full md:w-[60%] h-full bg-cyber-magenta/5 border-l border-cyber-magenta/20 -skew-x-12 origin-bottom transform translate-x-32 hidden md:block z-0"></div>
+
+            <div class="max-w-5xl mx-auto px-6 relative z-10 flex flex-col items-center text-center">
+
+                <div class="inline-flex h-10 items-center justify-center border border-cyber-cyan/50 bg-cyber-cyan/10 px-4 font-mono text-[10px] uppercase text-cyber-cyan tracking-[0.3em] mb-8">
+                    <span class="w-2 h-2 bg-cyber-cyan rounded-full mr-3 animate-pulse"></span>
+                    Secure Channel Open. Manager Online.
+                </div>
+
+                <h2 class="font-display text-5xl md:text-8xl font-bold uppercase text-white tracking-tight mb-6">
+                    Send Your<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan via-white to-cyber-magenta">Stats Now</span>
+                </h2>
+
+                <p class="font-tech text-xl text-white/60 mb-12 max-w-xl">
+                    DM us your followers, avg viewers, and platform. We'll review and get back to you fast.
+                </p>
+
+                <!-- Telegram CTA Button -->
+                <a href="https://t.me/" class="group relative inline-flex items-center justify-center cyber-button-alt bg-white hover:bg-cyber-cyan text-cyber-black px-8 md:px-12 py-5 font-display font-bold uppercase text-2xl tracking-widest transition-all duration-300">
+                    <svg class="w-8 h-8 mr-4 transition-transform group-hover:-rotate-12 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224-2.5 11.666c-.18.802-.656.996-1.32.616l-3.642-2.684-1.758 1.696c-.194.194-.356.356-.732.356l.262-3.722 6.78-6.13c.296-.264-.064-.412-.458-.15l-8.384 5.28-3.618-1.128c-.786-.246-.8-.786.164-1.164l14.12-5.438c.652-.246 1.222.148 1.086 1.086z"/>
+                    </svg>
+                    Write to Manager
+                </a>
+
+                <p class="font-mono text-xs text-white/20 mt-6 tracking-widest">TELEGRAM // RESPONSE TIME &lt; 2H</p>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-32 max-w-7xl mx-auto px-6 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center text-white/20 font-mono text-[10px] tracking-widest z-10 relative">
+                <div class="mb-4 md:mb-0">
+                    © 2024 STREAMX // PARTNERSHIP AGENCY
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-cyber-cyan transition-colors">TERMS</a>
+                    <a href="#" class="hover:text-cyber-cyan transition-colors">PRIVACY</a>
+                    <a href="#process" class="hover:text-cyber-cyan transition-colors">HOW IT WORKS</a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Edge vignette -->
+    <div class="fixed inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(3,5,8,0.9)] z-40 hidden md:block"></div>
+
+</body>
+</html>
