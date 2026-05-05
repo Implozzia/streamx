@@ -17,3 +17,17 @@ Thumbs.db
 # IDE
 .idea/
 .vscode/
+
+# Secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
