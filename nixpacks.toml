@@ -1,0 +1,7 @@
+# Nixpacks build config — нужен т.к. requirements.txt лежит в backend/, а не в корне
+
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["pip install -r backend/requirements.txt"]

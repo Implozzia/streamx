@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     APP_ENV: str = "development"
     DEBUG: bool = True
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5500,https://streamx.team"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5500,http://localhost:8000,https://streamx.team"
 
     ADMIN_EMAIL: str = "admin@streamx.team"
     ADMIN_PASSWORD: str = "changeme123"
