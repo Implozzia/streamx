@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamX // Admin Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              black:   '#030508',
+              gray:    '#12151A',
+              cyan:    '#00F0FF',
+              magenta: '#FF003C',
+              yellow:  '#FCEE0A',
+              dark:    '#080c11'
+            }
+          },
+          fontFamily: {
+            display: ['Rajdhani',      'sans-serif'],
+            tech:    ['Chakra Petch',  'sans-serif'],
+            mono:    ['JetBrains Mono','monospace'],
+            body:    ['Inter',         'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { --cut: 12px; --nav: 54px; --side: 230px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #030508;
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      scrollbar-width: thin;
+      scrollbar-color: #00F0FF #030508;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #030508; }
+    ::-webkit-scrollbar-thumb { background: #00F0FF; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,240,255,0.7); }
+
+    /* ==== FX LAYERS ==== */
+    .bg-grid-pattern {
+      background-image: linear-gradient(to right,#ffffff04 1px,transparent 1px),
+                        linear-gradient(to bottom,#ffffff04 1px,transparent 1px);
+      background-size: 40px 40px;
+    }
+    .scanlines {
+      background: linear-gradient(to bottom,
+        rgba(255,255,255,0),rgba(255,255,255,0) 50%,
+        rgba(0,0,0,0.18) 50%,rgba(0,0,0,0.18));
+      background-size: 100% 4px;
+    }
+
+    /* ==== CYBER SHAPES ==== */
+    .cyber-panel {
+      clip-path: polygon(
+        0 0,
+        calc(100% - var(--cut)) 0,
+        100% var(--cut),
+        100% 100%,
+        var(--cut) 100%,
+        0 calc(100% - var(--cut))
+      );
+    }
+    .cyber-panel-tr {
+      clip-path: polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,0 100%);
+    }
+    .cyber-button {
+      clip-path: polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);
+      transition: all 0.2s cubic-bezier(0.25,1,0.5,1);
+      cursor: pointer;
+    }
+    .cyber-button:hover {
+      transform: translate(-2px,-2px);
+      box-shadow: 3px 3px 0px #FF003C;
+      background-color: #00F0FF !important;
+      color: #030508 !important;
+    }
+    .cyber-button-sm {
+      clip-path: polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%);
+      transition: all 0.18s ease;
+      cursor: pointer;
+    }
+    .cyber-button-sm:hover {
+      transform: translate(-1px,-1px);
+      box-shadow: 2px 2px 0px #FF003C;
+      background-color: #00F0FF !important;
+      color: #030508 !important;
+    }
+
+    /* ==== TYPOGRAPHY ==== */
+    .glow-text    { text-shadow: 0 0 12px rgba(0,240,255,0.7); }
+    .glow-magenta { text-shadow: 0 0 12px rgba(255,0,60,0.6);  }
+
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+
+    /* ==== NAV ==== */
+    #topnav {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--nav);
+      background: rgba(3,5,8,0.97);
+      border-bottom: 1px solid rgba(0,240,255,0.12);
+      backdrop-filter: blur(12px);
+      z-index: 300;
+      display: flex; align-items: center;
+      padding: 0 20px;
+      justify-content: space-between;
+    }
+
+    /* ==== SIDEBAR ==== */
+    #sidebar {
+      position: fixed; top: var(--nav); left: 0; bottom: 0;
+      width: var(--side);
+      background: rgba(3,5,8,0.99);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      z-index: 200;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border-left: 2px solid transparent;
+      position: relative;
+    }
+    .nav-item:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.02); }
+    .nav-item.active {
+      color: #00F0FF; border-left-color: #00F0FF;
+      background: rgba(0,240,255,0.05);
+    }
+    .nav-item.active svg { filter: drop-shadow(0 0 4px rgba(0,240,255,0.6)); }
+    .nav-counter {
+      margin-left: auto; font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: rgba(0,240,255,0.5);
+      background: rgba(0,240,255,0.08); border: 1px solid rgba(0,240,255,0.15);
+      padding: 1px 6px; border-radius: 2px;
+    }
+
+    /* ==== MAIN ==== */
+    #main {
+      margin-left: var(--side);
+      margin-top: var(--nav);
+      min-height: calc(100vh - var(--nav));
+      padding: 28px 30px;
+    }
+
+    /* ==== SECTIONS ==== */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ==== PAGE HEADER ==== */
+    .page-head {
+      display: flex; align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 16px; margin-bottom: 22px;
+    }
+    .page-head-left .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: #00F0FF;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      margin-bottom: 4px; opacity: 0.7;
+    }
+    .page-head-left .title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 28px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.02em;
+    }
+
+    /* ==== STAT CARDS ==== */
+    .stat-grid { display: grid; gap: 12px; }
+    .stat-card {
+      background: #080c11; border: 1px solid rgba(255,255,255,0.07);
+      padding: 16px 20px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(0,240,255,0.2); }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(0,240,255,0.5); margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px; font-weight: 800;
+    }
+    .sv-cyan    { color: #00F0FF; text-shadow: 0 0 16px rgba(0,240,255,0.4); }
+    .sv-green   { color: #27C93F; }
+    .sv-yellow  { color: #FCEE0A; }
+    .sv-magenta { color: #FF003C; }
+    .sv-white   { color: #fff; }
+    .sv-purple  { color: #a78bfa; }
+
+    /* ==== FILTER BAR ==== */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+
+    /* ==== INPUTS ==== */
+    .ci {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff; border-radius: 0;
+      padding: 7px 11px; font-size: 12px;
+      transition: border-color 0.18s;
+      font-family: 'Chakra Petch', sans-serif;
+      outline: none;
+    }
+    .ci:focus { border-color: #00F0FF; background: rgba(0,240,255,0.03); }
+    .ci::placeholder { color: rgba(255,255,255,0.15); }
+    select.ci option { background: #080c11; color: #fff; }
+    textarea.ci { resize: vertical; min-height: 72px; }
+
+    /* ==== BUTTONS ==== */
+    .btn-c {
+      background: white; color: #030508;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700; text-transform: uppercase;
+      font-size: 11px; letter-spacing: 0.08em;
+      padding: 7px 16px; border: none;
+    }
+    .btn-g {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.4);
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 11px; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 7px 14px;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .btn-g:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.8); }
+    .btn-r {
+      background: transparent;
+      border: 1px solid rgba(255,0,60,0.3);
+      color: #FF003C;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 11px; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-r:hover { background: rgba(255,0,60,0.08); border-color: #FF003C; }
+    .btn-s {
+      background: transparent;
+      border: 1px solid rgba(39,201,63,0.3);
+      color: #27C93F;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 11px; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-s:hover { background: rgba(39,201,63,0.08); border-color: #27C93F; }
+
+    /* ==== TABLES ==== */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead { border-bottom: 1px solid rgba(0,240,255,0.15); }
+    .data-table th {
+      text-align: left; padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(0,240,255,0.4);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .data-table th:hover { color: rgba(0,240,255,0.8); }
+    .data-table th.th-a::after  { content: ' ↑'; color: #00F0FF; }
+    .data-table th.th-d::after  { content: ' ↓'; color: #00F0FF; }
+    .data-table td {
+      padding: 11px 14px; font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .data-table tbody tr:hover td { background: rgba(0,240,255,0.03); }
+    .no-click { cursor: default !important; }
+    .no-click:hover td { background: transparent !important; }
+
+    .empty-td {
+      text-align: center; padding: 44px !important;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: rgba(255,255,255,0.15) !important;
+      cursor: default !important;
+      letter-spacing: 0.15em;
+    }
+
+    /* ==== STATUS BADGES ==== */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; font-size: 10px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .badge::before { content:''; width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    .b-test    { background:rgba(252,238,10,0.1);  color:#FCEE0A; border:1px solid rgba(252,238,10,0.2);  }
+    .b-test::before    { background:#FCEE0A; }
+    .b-active  { background:rgba(39,201,63,0.1);   color:#27C93F; border:1px solid rgba(39,201,63,0.2);   }
+    .b-active::before  { background:#27C93F; box-shadow:0 0 4px #27C93F; }
+    .b-pause   { background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.1); }
+    .b-pause::before   { background:rgba(255,255,255,0.3); }
+    .b-dropped { background:rgba(255,0,60,0.1);    color:#FF003C; border:1px solid rgba(255,0,60,0.2);    }
+    .b-dropped::before { background:#FF003C; }
+    .b-pending { background:rgba(252,238,10,0.1);  color:#FCEE0A; border:1px solid rgba(252,238,10,0.2);  }
+    .b-pending::before { background:#FCEE0A; }
+    .b-paid    { background:rgba(39,201,63,0.1);   color:#27C93F; border:1px solid rgba(39,201,63,0.2);   }
+    .b-paid::before    { background:#27C93F; box-shadow:0 0 4px #27C93F; }
+
+    /* ==== PLATFORM TAGS ==== */
+    .ptag {
+      display:inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; padding: 2px 6px;
+      border: 1px solid; border-radius: 0;
+    }
+    .pt-tiktok   { color:#ff2d55; border-color:rgba(255,45,85,0.3);   background:rgba(255,45,85,0.06);   }
+    .pt-youtube  { color:#ff0000; border-color:rgba(255,0,0,0.3);     background:rgba(255,0,0,0.06);     }
+    .pt-twitch   { color:#9147ff; border-color:rgba(145,71,255,0.3);  background:rgba(145,71,255,0.06);  }
+    .pt-kick     { color:#53fc18; border-color:rgba(83,252,24,0.3);   background:rgba(83,252,24,0.06);   }
+
+    /* ==== MODAL ==== */
+    .overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .mbox {
+      background: #080c11;
+      border: 1px solid rgba(0,240,255,0.15);
+      width: 560px; max-width: 96vw;
+      max-height: 92vh; overflow-y: auto;
+      padding: 28px; position: relative;
+    }
+    .mbox::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, #00F0FF 0%, transparent 60%);
+      opacity: 0.5;
+    }
+    .m-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .m-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .m-close {
+      background:none; border:none; color:rgba(255,255,255,0.3);
+      cursor:pointer; font-size:22px; line-height:1; transition:color 0.15s;
+    }
+    .m-close:hover { color:#fff; }
+    .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .s2 { grid-column: span 2; }
+    .s1 { grid-column: span 1; }
+    .fl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(0,240,255,0.4);
+      display: block; margin-bottom: 6px;
+    }
+    .fw { width: 100%; }
+
+    /* ==== BOT CARDS ==== */
+    .bot-card {
+      background: #080c11; border: 1px solid rgba(255,255,255,0.08);
+      padding: 22px; transition: all 0.2s;
+      clip-path: polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    }
+    .bot-card:hover {
+      border-color: rgba(0,240,255,0.3);
+      background: rgba(0,240,255,0.02);
+    }
+
+    /* ==== DOC CARDS ==== */
+    .doc-card {
+      background: #080c11; border: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      transition: border-color 0.18s;
+    }
+    .doc-card:hover { border-color: rgba(0,240,255,0.2); }
+
+    /* ==== CATEGORY LABELS ==== */
+    .cat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: rgba(0,240,255,0.4); margin-bottom: 10px; margin-top: 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .cat-label:first-child { margin-top: 0; }
+    .cat-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(0,240,255,0.2), transparent);
+    }
+
+    /* ==== NOTIFICATION ==== */
+    #notif {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 10px 18px; z-index: 999;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      letter-spacing: 0.05em;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.25s, transform 0.25s; pointer-events: none;
+    }
+    #notif.show { opacity: 1; transform: translateY(0); }
+    #notif.ns { background:rgba(39,201,63,0.1);  border:1px solid #27C93F; color:#27C93F; }
+    #notif.ne { background:rgba(255,0,60,0.1);   border:1px solid #FF003C; color:#FF003C; }
+    #notif.ni { background:rgba(0,240,255,0.08); border:1px solid #00F0FF; color:#00F0FF; }
+
+    /* ==== DETAIL ==== */
+    #streamerDetail { display: none; }
+    .detail-stat {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06); padding: 14px;
+    }
+    .detail-stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(0,240,255,0.4); margin-bottom: 5px;
+    }
+    .detail-stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 800;
+    }
+
+    /* ==== INFO BANNER ==== */
+    .info-banner {
+      background: rgba(0,240,255,0.03);
+      border: 1px solid rgba(0,240,255,0.12);
+      border-left: 3px solid #00F0FF;
+      padding: 13px 16px;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: rgba(255,255,255,0.4);
+    }
+
+    /* ==== FIELD ERRORS ==== */
+    .field-err {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: #FF003C;
+      letter-spacing: 0.1em; margin-top: 4px;
+      min-height: 13px;
+    }
+
+    /* ==== GLITCH HOVER (tables) ==== */
+    .glitch-hover { position: relative; }
+
+    /* sys-ui-line (sidebar separator) */
+    .sys-line {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(0,240,255,0.3), transparent);
+      margin: 8px 20px;
+    }
+
+    /* ==== NEW SECTIONS ==== */
+    @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(1.6);} }
+    .live-dot { width:6px; height:6px; border-radius:50%; background:#27C93F; display:inline-block; animation:livePulse 1.4s ease infinite; flex-shrink:0; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ai-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(0,240,255,0.2); border-top-color:#00F0FF; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
+
+    /* Pending sidebar badge (red) */
+    .nav-badge-r { margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:10px; color:#FF003C; background:rgba(255,0,60,0.1); border:1px solid rgba(255,0,60,0.25); padding:1px 6px; border-radius:2px; min-width:18px; text-align:center; }
+
+    /* Schedule calendar */
+    .sched-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+    @media(max-width:900px){ .sched-grid{ grid-template-columns:repeat(4,1fr); } }
+    @media(max-width:580px){ .sched-grid{ grid-template-columns:repeat(2,1fr); } }
+    .day-cell { background:#080c11; border:1px solid rgba(255,255,255,0.07); padding:10px; min-height:150px; display:flex; flex-direction:column; transition:border-color 0.18s; }
+    .day-cell.today-col { border-color:rgba(0,240,255,0.35); background:rgba(0,240,255,0.025); }
+    .day-name { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(0,240,255,0.4); margin-bottom:3px; }
+    .day-num { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:rgba(255,255,255,0.55); margin-bottom:7px; }
+    .day-cell.today-col .day-num { color:#00F0FF; text-shadow:0 0 10px rgba(0,240,255,0.5); }
+    .stream-mini { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); padding:5px 7px; margin-bottom:3px; font-family:'Chakra Petch',sans-serif; font-size:10px; font-weight:600; transition:border-color 0.15s; cursor:pointer; }
+    .stream-mini:hover { border-color:rgba(0,240,255,0.25); }
+    .sm-live   { border-left:2px solid #27C93F; }
+    .sm-done   { border-left:2px solid #00F0FF; opacity:0.55; }
+    .sm-noshow { border-left:2px solid #FF003C; }
+    .sm-sched  { border-left:2px solid rgba(255,255,255,0.18); }
+    .day-add-btn { margin-top:auto; font-family:'JetBrains Mono',monospace; font-size:9px; color:rgba(0,240,255,0.25); text-align:center; padding:4px 0; cursor:pointer; border:none; background:none; width:100%; transition:color 0.15s; letter-spacing:0.12em; }
+    .day-add-btn:hover { color:rgba(0,240,255,0.7); }
+
+    /* Checker */
+    .ck-row { background:#080c11; border:1px solid rgba(255,255,255,0.07); padding:14px 16px; margin-bottom:8px; transition:border-color 0.18s; }
+    .ck-row.flagged { border-color:rgba(252,238,10,0.35); background:rgba(252,238,10,0.02); }
+    .check-item { display:flex; align-items:center; gap:7px; font-family:'Chakra Petch',sans-serif; font-size:11px; color:rgba(255,255,255,0.45); cursor:pointer; padding:2px 0; user-select:none; }
+    .check-item input[type=checkbox] { accent-color:#00F0FF; width:12px; height:12px; cursor:pointer; flex-shrink:0; }
+    .check-item.checked { color:rgba(0,240,255,0.5); text-decoration:line-through; }
+    .warn-flag { display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:9px; color:#FCEE0A; background:rgba(252,238,10,0.07); border:1px solid rgba(252,238,10,0.2); padding:2px 8px; letter-spacing:0.07em; }
+
+    /* Analyzer */
+    .analyzer-result { background:#080c11; border:1px solid rgba(0,240,255,0.2); padding:22px; position:relative; }
+    .analyzer-result::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,#00F0FF 0%,#FF003C 50%,transparent 100%); }
+    .rating-badge { width:56px; height:56px; border:2px solid #00F0FF; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:800; color:#00F0FF; text-shadow:0 0 14px rgba(0,240,255,0.5); flex-shrink:0; }
+    .rating-badge.r-high { border-color:#27C93F; color:#27C93F; text-shadow:0 0 14px rgba(39,201,63,0.5); }
+    .rating-badge.r-mid  { border-color:#FCEE0A; color:#FCEE0A; text-shadow:0 0 14px rgba(252,238,10,0.5); }
+    .rating-badge.r-low  { border-color:#FF003C; color:#FF003C; text-shadow:0 0 14px rgba(255,0,60,0.5); }
+    .action-badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:3px 10px; border:1px solid; }
+    .ab-accept    { color:#27C93F; border-color:rgba(39,201,63,0.4); background:rgba(39,201,63,0.08); }
+    .ab-negotiate { color:#FCEE0A; border-color:rgba(252,238,10,0.4); background:rgba(252,238,10,0.08); }
+    .ab-decline   { color:#FF003C; border-color:rgba(255,0,60,0.4); background:rgba(255,0,60,0.08); }
+  </style>
+</head>
+
+<body class="antialiased selection:bg-cyber-cyan selection:text-cyber-black">
+
+  <!-- FX Layers -->
+  <div class="fixed inset-0 bg-grid-pattern z-[-2] opacity-[0.18]"></div>
+  <div class="fixed inset-0 scanlines z-[1] pointer-events-none opacity-[0.12]"></div>
+  <div class="fixed top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyber-magenta via-cyber-cyan to-cyber-magenta z-[400]"></div>
+  <div class="fixed inset-0 pointer-events-none shadow-[inset_0_0_120px_rgba(3,5,8,0.7)] z-[350] hidden md:block"></div>
+
+<div id="app" style="position:relative;z-index:2;">
+
+<!-- ======== TOP NAV ======== -->
+<nav id="topnav">
+  <div class="flex items-center gap-3">
+    <div class="font-display font-bold text-2xl uppercase tracking-tight">
+      STREAM<span class="text-cyber-cyan glow-text">[X]</span>
+    </div>
+    <span class="font-mono text-[10px] text-white/20 tracking-widest hidden sm:block">///</span>
+    <span class="font-mono text-[10px] text-white/30 tracking-[0.2em] hidden sm:block">ADMIN PANEL</span>
+  </div>
+
+  <div class="flex items-center gap-4">
+    <div class="font-mono text-[10px] hidden md:block">
+      <span class="text-cyber-cyan/50 mr-1">SYS:</span>
+      <span class="text-white/30" id="sysDate"></span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span class="w-1.5 h-1.5 bg-cyber-cyan rounded-full animate-ping opacity-70"></span>
+      <span class="font-mono text-[9px] text-cyber-cyan/50 tracking-widest hidden sm:block">ONLINE</span>
+    </div>
+    <button
+      onclick="logout()"
+      class="cyber-button-sm bg-white/5 border border-white/10 text-white/40 font-tech text-[10px] uppercase tracking-wider px-4 py-2 hover:text-cyber-black"
+      style="font-family:'Chakra Petch',sans-serif;"
+    >
+      ⊗ LOGOUT
+    </button>
+  </div>
+</nav>
+
+<!-- ======== SIDEBAR ======== -->
+<aside id="sidebar">
+  <div class="px-5 pt-5 pb-3">
+    <div class="font-mono text-[9px] text-white/15 tracking-[0.3em] uppercase">Navigation</div>
+  </div>
+
+  <div class="sys-line"></div>
+
+  <div class="nav-item active" onclick="showSection('streamers')" data-sec="streamers">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Streamers
+    <span class="nav-counter" id="ncStreamers">0</span>
+  </div>
+
+  <div class="nav-item" onclick="showSection('pending')" data-sec="pending">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Pending
+    <span class="nav-badge-r" id="ncPending">0</span>
+  </div>
+
+  <div class="nav-item" onclick="showSection('schedule')" data-sec="schedule">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="0"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Schedule
+    <span class="nav-counter" id="ncSchedule">0</span>
+  </div>
+
+  <div class="nav-item" onclick="showSection('checker')" data-sec="checker">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Checker
+  </div>
+
+  <div class="nav-item" onclick="showSection('payouts')" data-sec="payouts">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="0"/><path d="M2 10h20"/></svg>
+    Payouts
+    <span class="nav-counter" id="ncPayouts">0</span>
+  </div>
+
+  <div class="nav-item" onclick="showSection('bots')" data-sec="bots">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="0"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><path d="M8 15h.01M12 15h.01M16 15h.01"/></svg>
+    Bots
+  </div>
+
+  <div class="nav-item" onclick="showSection('docs')" data-sec="docs">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Docs
+  </div>
+
+  <div class="nav-item" onclick="showSection('analyzer')" data-sec="analyzer">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    Analyzer
+  </div>
+
+  <div class="nav-item" onclick="showSection('analytics')" data-sec="analytics">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Analytics
+  </div>
+
+  <div class="sys-line" style="margin-top:auto;"></div>
+
+  <div class="px-5 py-4">
+    <div class="font-mono text-[9px] text-white/15 tracking-widest">
+      v1.0 // INTERNAL ONLY
+    </div>
+  </div>
+</aside>
+
+<!-- ======== MAIN ======== -->
+<main id="main">
+
+  <!-- ============ STREAMERS ============ -->
+  <section id="sec-streamers" class="section active">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// ROSTER MANAGEMENT</div>
+        <div class="title">Streamers</div>
+      </div>
+      <button class="cyber-button btn-c" onclick="openAddStreamer()">+ ADD STREAMER</button>
+    </div>
+
+    <div id="streamersListView">
+      <div class="filter-bar">
+        <input type="text" class="ci" id="sSearch" placeholder="Search nickname..." style="width:175px;" oninput="renderStreamers()">
+        <select class="ci" id="fStatus" onchange="renderStreamers()">
+          <option value="">All Status</option>
+          <option>Test</option><option>Active</option><option>Pause</option><option>Dropped</option>
+        </select>
+        <select class="ci" id="fManager" onchange="renderStreamers()">
+          <option value="">All Managers</option>
+          <option>Olga</option><option>Alexander</option><option>Camillo</option>
+        </select>
+        <select class="ci" id="fPlatform" onchange="renderStreamers()">
+          <option value="">All Platforms</option>
+          <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+        </select>
+      </div>
+
+      <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="tStreamers">
+            <thead><tr>
+              <th onclick="sort('streamers','nickname')">Nickname</th>
+              <th onclick="sort('streamers','platform')">Platform</th>
+              <th onclick="sort('streamers','followers')">Followers</th>
+              <th onclick="sort('streamers','avgViewers')">Avg Viewers</th>
+              <th onclick="sort('streamers','pricePerStream')">Price / Stream</th>
+              <th onclick="sort('streamers','status')">Status</th>
+              <th onclick="sort('streamers','manager')">Manager</th>
+              <th style="cursor:default;">Actions</th>
+            </tr></thead>
+            <tbody id="streamersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="streamerDetail">
+      <button class="btn-g" onclick="closeDetail()" style="margin-bottom:16px;">← BACK TO LIST</button>
+      <div id="detailContent"></div>
+    </div>
+  </section>
+
+  <!-- ============ PAYOUTS ============ -->
+  <section id="sec-payouts" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// FINANCIAL MANAGEMENT</div>
+        <div class="title">Payouts</div>
+      </div>
+      <button class="cyber-button btn-c" onclick="openAddPayout()">+ ADD PAYOUT</button>
+    </div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Total Pending</div>
+        <div class="stat-value sv-cyan" id="sPending">$0<span class="cursor-blink text-cyber-cyan/50" style="font-size:20px;">_</span></div>
+      </div>
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Total Paid</div>
+        <div class="stat-value sv-green" id="sPaid">$0</div>
+      </div>
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Entries</div>
+        <div class="stat-value sv-white" id="sEntries">0</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <select class="ci" id="fpManager" onchange="renderPayouts()">
+        <option value="">All Managers</option>
+        <option>Olga</option><option>Alexander</option><option>Camillo</option>
+      </select>
+      <select class="ci" id="fpStatus" onchange="renderPayouts()">
+        <option value="">All Status</option>
+        <option>Pending</option><option>Paid</option>
+      </select>
+    </div>
+
+    <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th onclick="sort('payouts','streamer')">Streamer</th>
+            <th onclick="sort('payouts','streamsDone')">Streams Done</th>
+            <th onclick="sort('payouts','amount')">Amount</th>
+            <th onclick="sort('payouts','manager')">Manager</th>
+            <th onclick="sort('payouts','status')">Status</th>
+            <th onclick="sort('payouts','date')">Date</th>
+            <th style="cursor:default;">Actions</th>
+          </tr></thead>
+          <tbody id="payoutsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BOTS ============ -->
+  <section id="sec-bots" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// ECOSYSTEM</div>
+        <div class="title">Bots</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+
+      <div class="bot-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,240,255,0.4);text-transform:uppercase;margin-bottom:5px;">FUNNEL BOT</div>
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;color:#00F0FF;">@stockity_start_bot</div>
+          </div>
+          <div style="width:38px;height:38px;background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.15);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#00F0FF" opacity="0.8"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224-2.5 11.666c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.83.941z"/></svg>
+          </div>
+        </div>
+        <p style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;margin-bottom:16px;">
+          Funnel bot — accepts streamer nickname, gives referral link + FAQ answers
+        </p>
+        <div class="font-mono text-[9px] text-white/20 mb-3">
+          <span class="text-cyber-magenta/60">root@streamx:~$</span> ./launch_bot.sh stockity_start
+        </div>
+        <a href="https://t.me/stockity_start_bot" target="_blank" class="cyber-button btn-c inline-block" style="text-decoration:none;font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:700;padding:8px 18px;">
+          OPEN IN TELEGRAM →
+        </a>
+      </div>
+
+      <div class="bot-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,240,255,0.4);text-transform:uppercase;margin-bottom:5px;">TRANSCRIPTION BOT</div>
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;color:#00F0FF;">@pulse_transcribe_bot</div>
+          </div>
+          <div style="width:38px;height:38px;background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.15);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="2" opacity="0.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+        </div>
+        <p style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;margin-bottom:16px;">
+          Video to text transcription + CTA counter
+        </p>
+        <div class="font-mono text-[9px] text-white/20 mb-3">
+          <span class="text-cyber-magenta/60">root@streamx:~$</span> ./launch_bot.sh pulse_transcribe
+        </div>
+        <a href="https://t.me/pulse_transcribe_bot" target="_blank" class="cyber-button btn-c inline-block" style="text-decoration:none;font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:700;padding:8px 18px;">
+          OPEN IN TELEGRAM →
+        </a>
+      </div>
+
+      <div class="bot-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(252,238,10,0.5);text-transform:uppercase;margin-bottom:5px;">VIP ACCESS BOT</div>
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;color:#FCEE0A;">@andres_vip_bot</div>
+          </div>
+          <div style="width:38px;height:38px;background:rgba(252,238,10,0.06);border:1px solid rgba(252,238,10,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FCEE0A" stroke-width="2" opacity="0.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+        </div>
+        <p style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;margin-bottom:16px;">
+          VIP template bot — user sends deposit screenshot, gets VIP group link
+        </p>
+        <div class="font-mono text-[9px] text-white/20 mb-3">
+          <span class="text-cyber-magenta/60">root@streamx:~$</span> ./launch_bot.sh andres_vip
+        </div>
+        <a href="https://t.me/andres_vip_bot" target="_blank" class="cyber-button btn-c inline-block" style="text-decoration:none;font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:700;padding:8px 18px;">
+          OPEN IN TELEGRAM →
+        </a>
+      </div>
+
+      <div class="bot-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(255,0,60,0.5);text-transform:uppercase;margin-bottom:5px;">ANALYZER BOT</div>
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;color:#FF003C;">@streamx_analyst_bot</div>
+          </div>
+          <div style="width:38px;height:38px;background:rgba(255,0,60,0.06);border:1px solid rgba(255,0,60,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF003C" stroke-width="2" opacity="0.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+        </div>
+        <p style="font-family:'Inter',sans-serif;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;margin-bottom:16px;">
+          Streamer analyzer — send screenshots of stats (TikTok, TG, etc), bot gives rating + price estimate
+        </p>
+        <div class="font-mono text-[9px] text-white/20 mb-3">
+          <span class="text-cyber-magenta/60">root@streamx:~$</span> ./launch_bot.sh streamx_analyst
+        </div>
+        <a href="https://t.me/streamx_analyst_bot" target="_blank" class="cyber-button btn-c inline-block" style="text-decoration:none;font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:700;padding:8px 18px;">
+          OPEN IN TELEGRAM →
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ DOCS ============ -->
+  <section id="sec-docs" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// TEAM RESOURCES</div>
+        <div class="title">Docs</div>
+      </div>
+    </div>
+    <div class="font-mono text-[10px] text-white/20 mb-5">
+      <span class="text-cyber-cyan/40">//</span> Click <span class="text-white/40">SET</span> or <span class="text-white/40">EDIT</span> on any card to update the link
+    </div>
+    <div id="docsContainer"></div>
+  </section>
+
+  <!-- ============ ANALYTICS ============ -->
+  <section id="sec-analytics" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// PERFORMANCE TRACKING</div>
+        <div class="title">Analytics</div>
+      </div>
+      <button class="cyber-button btn-c" onclick="openAddAnalytics()">+ ADD ENTRY</button>
+    </div>
+
+    <!-- Terminal banner -->
+    <div style="background:#050608;border:1px solid rgba(255,255,255,0.12);margin-bottom:20px;overflow:hidden;">
+      <div style="background:rgba(255,255,255,0.06);padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:6px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#FF5F56;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#FFBD2E;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#27C93F;"></div>
+        <span class="font-mono text-[10px] text-white/30 ml-3">root@streamx-core:~/analytics</span>
+      </div>
+      <div class="font-mono text-xs p-5" style="color:rgba(0,240,255,0.6);line-height:1.8;">
+        <div class="text-white/25 mb-2">// integration status check...</div>
+        <div><span class="text-cyber-magenta/70">root@streamx:~$</span> ./check_affiliatetop.sh</div>
+        <div class="mt-3 flex gap-3"><span class="text-cyber-yellow">[PENDING]</span><span class="text-white/70">AffiliateTop API — <span class="text-cyber-cyan">integration coming soon</span></span></div>
+        <div class="flex gap-3"><span class="text-cyber-yellow">[OK]</span><span class="text-white/70">Manual entry — available now</span></div>
+        <div class="mt-3 flex items-center"><span class="text-cyber-magenta/70">root@streamx:~$</span><span class="w-2 h-4 bg-white ml-2 cursor-blink inline-block"></span></div>
+      </div>
+    </div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Deposits</div>
+        <div class="stat-value sv-cyan" id="aTotDep">0</div>
+      </div>
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Conversions</div>
+        <div class="stat-value sv-purple" id="aTotConv">0</div>
+      </div>
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Revenue</div>
+        <div class="stat-value sv-green" id="aTotRev">$0</div>
+      </div>
+      <div class="stat-card cyber-panel">
+        <div class="stat-label">// Conv Rate</div>
+        <div class="stat-value sv-yellow" id="aConvRate">0.0%</div>
+      </div>
+    </div>
+
+    <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th onclick="sort('analytics','streamer')">Streamer</th>
+            <th onclick="sort('analytics','deposits')">Deposits</th>
+            <th onclick="sort('analytics','conversions')">Conversions</th>
+            <th onclick="sort('analytics','revenue')">Revenue</th>
+            <th onclick="sort('analytics','week')">Week</th>
+            <th style="cursor:default;">Actions</th>
+          </tr></thead>
+          <tbody id="analyticsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============ PENDING ============ -->
+  <section id="sec-pending" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// APPROVAL QUEUE</div>
+        <div class="title">Pending</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-g" onclick="openAIImport()">+ IMPORT VIA AI</button>
+        <button class="cyber-button btn-c" onclick="openAddPending()">+ ADD MANUALLY</button>
+      </div>
+    </div>
+    <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Nickname</th>
+            <th>Platform</th>
+            <th>Followers</th>
+            <th>Avg Viewers</th>
+            <th>Submitted By</th>
+            <th>Date</th>
+            <th style="cursor:default;">Actions</th>
+          </tr></thead>
+          <tbody id="pendingBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCHEDULE ============ -->
+  <section id="sec-schedule" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// STREAM CALENDAR</div>
+        <div class="title">Schedule</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-g" onclick="schedWeekOffset(-1)" style="padding:6px 14px;">← PREV</button>
+        <span class="font-mono text-[10px] text-white/30 tracking-wider" id="schedWeekLabel" style="min-width:200px;text-align:center;"></span>
+        <button class="btn-g" onclick="schedWeekOffset(1)" style="padding:6px 14px;">NEXT →</button>
+      </div>
+    </div>
+    <div class="sched-grid" id="schedGrid"></div>
+  </section>
+
+  <!-- ============ CHECKER ============ -->
+  <section id="sec-checker" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// STREAM VERIFICATION</div>
+        <div class="title">Stream Checker</div>
+      </div>
+    </div>
+    <div class="info-banner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Streams scheduled for today and the next 48 hours. Check all boxes to confirm. Unchecked items after stream time auto-flag for payout review.
+    </div>
+    <div id="checkerBody"></div>
+  </section>
+
+  <!-- ============ ANALYZER ============ -->
+  <section id="sec-analyzer" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// AI STREAMER ANALYSIS</div>
+        <div class="title">Analyzer</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+      <div>
+        <div style="background:#080c11;border:1px solid rgba(255,255,255,0.07);padding:20px;position:relative;">
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(0,240,255,0.4) 0%,transparent 60%);"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">// Paste Stats or Screenshot Data</div>
+          <textarea class="ci fw" id="analyzerInput" style="min-height:200px;margin-bottom:12px;" placeholder="Paste streamer stats, screenshot text, or raw data...&#10;&#10;E.g.: @latin_traders, TikTok, 9K followers, 200 avg viewers&#10;Been streaming Stockity for 3 months, good engagement"></textarea>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button class="cyber-button btn-c" onclick="runAnalysis()" id="analyzerBtn" style="padding:8px 20px;">ANALYZE WITH AI</button>
+            <span id="analyzerSpinner" style="display:none;align-items:center;gap:6px;"><span class="ai-spinner"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(0,240,255,0.5);">ANALYZING...</span></span>
+          </div>
+        </div>
+      </div>
+      <div id="analyzerResult" style="display:none;"></div>
+    </div>
+    <div id="analyzerHistory" style="margin-top:24px;"></div>
+  </section>
+
+</main>
+
+<!-- ======== MODALS ======== -->
+
+<!-- Streamer Modal -->
+<div class="overlay" id="mStreamer">
+  <div class="mbox">
+    <div class="m-head">
+      <span class="m-title" id="mStreamerTitle">Add Streamer</span>
+      <button class="m-close" onclick="closeM('mStreamer')">×</button>
+    </div>
+    <form id="formStreamer" novalidate>
+      <div class="fg">
+        <div class="s1">
+          <label class="fl">Nickname *</label>
+          <input type="text" class="ci fw" id="sNick" placeholder="e.g. xXstreamer99">
+          <div class="field-err" id="errNick"></div>
+        </div>
+        <div class="s1">
+          <label class="fl">Platform *</label>
+          <select class="ci fw" id="sPlatform">
+            <option value="">Select...</option>
+            <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+          </select>
+          <div class="field-err" id="errPlatform"></div>
+        </div>
+        <div class="s1">
+          <label class="fl">Followers</label>
+          <input type="number" class="ci fw" id="sFollowers" placeholder="0" min="0">
+        </div>
+        <div class="s1">
+          <label class="fl">Avg Viewers</label>
+          <input type="number" class="ci fw" id="sAvgV" placeholder="0" min="0">
+        </div>
+        <div class="s1">
+          <label class="fl">Price / Stream ($)</label>
+          <input type="number" class="ci fw" id="sPrice" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="s1">
+          <label class="fl">Status *</label>
+          <select class="ci fw" id="sStatus">
+            <option value="">Select...</option>
+            <option>Test</option><option>Active</option><option>Pause</option><option>Dropped</option>
+          </select>
+          <div class="field-err" id="errStatus"></div>
+        </div>
+        <div class="s1">
+          <label class="fl">Manager</label>
+          <select class="ci fw" id="sManager">
+            <option value="">Unassigned</option>
+            <option>Olga</option><option>Alexander</option><option>Camillo</option>
+          </select>
+        </div>
+        <div class="s2">
+          <label class="fl">Notes</label>
+          <textarea class="ci fw" id="sNotes" placeholder="Additional notes..."></textarea>
+        </div>
+      </div>
+      <input type="hidden" id="sEditId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn-g" onclick="closeM('mStreamer')">CANCEL</button>
+        <button type="button" class="cyber-button btn-c" style="padding:8px 20px;" onclick="saveStreamer()">SAVE STREAMER</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Stream History Modal -->
+<div class="overlay" id="mHistory">
+  <div class="mbox" style="width:400px;">
+    <div class="m-head">
+      <span class="m-title">Add Stream Entry</span>
+      <button class="m-close" onclick="closeM('mHistory')">×</button>
+    </div>
+    <form onsubmit="saveHistory(event)">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div><label class="fl">Date</label><input type="date" class="ci fw" id="hDate"></div>
+        <div><label class="fl">Description</label><input type="text" class="ci fw" id="hDesc" placeholder="Stream notes..."></div>
+        <div><label class="fl">Amount ($)</label><input type="number" class="ci fw" id="hAmount" placeholder="0.00" step="0.01" min="0"></div>
+      </div>
+      <input type="hidden" id="hStreamerId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">
+        <button type="button" class="btn-g" onclick="closeM('mHistory')">CANCEL</button>
+        <button type="submit" class="cyber-button btn-c" style="padding:8px 18px;">ADD ENTRY</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Payout Modal -->
+<div class="overlay" id="mPayout">
+  <div class="mbox" style="width:480px;">
+    <div class="m-head">
+      <span class="m-title">Add Payout</span>
+      <button class="m-close" onclick="closeM('mPayout')">×</button>
+    </div>
+    <form onsubmit="savePayout(event)">
+      <div class="fg">
+        <div class="s1"><label class="fl">Streamer *</label><input type="text" class="ci fw" id="pStreamer" required placeholder="Nickname"></div>
+        <div class="s1"><label class="fl">Manager</label>
+          <select class="ci fw" id="pManager">
+            <option value="">Unassigned</option>
+            <option>Olga</option><option>Alexander</option><option>Camillo</option>
+          </select>
+        </div>
+        <div class="s1"><label class="fl">Streams Done</label><input type="number" class="ci fw" id="pStreams" placeholder="0" min="0"></div>
+        <div class="s1"><label class="fl">Amount ($) *</label><input type="number" class="ci fw" id="pAmount" required placeholder="0.00" step="0.01" min="0"></div>
+        <div class="s1"><label class="fl">Status</label>
+          <select class="ci fw" id="pStatus">
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+        <div class="s1"><label class="fl">Date</label><input type="date" class="ci fw" id="pDate"></div>
+      </div>
+      <input type="hidden" id="pEditId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn-g" onclick="closeM('mPayout')">CANCEL</button>
+        <button type="submit" class="cyber-button btn-c" style="padding:8px 18px;">SAVE PAYOUT</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="overlay" id="mAnalytics">
+  <div class="mbox" style="width:460px;">
+    <div class="m-head">
+      <span class="m-title">Add Analytics Entry</span>
+      <button class="m-close" onclick="closeM('mAnalytics')">×</button>
+    </div>
+    <form onsubmit="saveAnalytics(event)">
+      <div class="fg">
+        <div class="s1"><label class="fl">Streamer *</label><input type="text" class="ci fw" id="aStreamer" required placeholder="Nickname"></div>
+        <div class="s1"><label class="fl">Week</label><input type="text" class="ci fw" id="aWeek" placeholder="e.g. W17 2026"></div>
+        <div class="s1"><label class="fl">Deposits</label><input type="number" class="ci fw" id="aDeposits" placeholder="0" min="0"></div>
+        <div class="s1"><label class="fl">Conversions</label><input type="number" class="ci fw" id="aConversions" placeholder="0" min="0"></div>
+        <div class="s2"><label class="fl">Revenue ($)</label><input type="number" class="ci fw" id="aRevenue" placeholder="0.00" step="0.01" min="0" style="max-width:220px;"></div>
+      </div>
+      <input type="hidden" id="aEditId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn-g" onclick="closeM('mAnalytics')">CANCEL</button>
+        <button type="submit" class="cyber-button btn-c" style="padding:8px 18px;">SAVE ENTRY</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Doc Link Modal -->
+<div class="overlay" id="mDocLink">
+  <div class="mbox" style="width:420px;">
+    <div class="m-head">
+      <span class="m-title">Edit Document Link</span>
+      <button class="m-close" onclick="closeM('mDocLink')">×</button>
+    </div>
+    <div>
+      <label class="fl">Document</label>
+      <div id="docLinkName" style="font-family:'Chakra Petch',sans-serif;color:#ccc;font-size:13px;font-weight:600;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.05em;"></div>
+      <label class="fl">URL</label>
+      <input type="url" class="ci fw" id="docLinkUrl" placeholder="https://..." style="margin-bottom:18px;">
+      <input type="hidden" id="docLinkKey">
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button type="button" class="btn-g" onclick="closeM('mDocLink')">CANCEL</button>
+        <button type="button" class="cyber-button btn-c" onclick="saveDocLink()" style="padding:8px 18px;">SAVE LINK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Manual Modal -->
+<div class="overlay" id="mPending">
+  <div class="mbox" style="width:540px;">
+    <div class="m-head">
+      <span class="m-title">Add to Pending</span>
+      <button class="m-close" onclick="closeM('mPending')">×</button>
+    </div>
+    <form onsubmit="savePendingManual(event)">
+      <div class="fg">
+        <div class="s1"><label class="fl">Nickname *</label><input type="text" class="ci fw" id="pndNick" required placeholder="e.g. xXstreamer99"></div>
+        <div class="s1"><label class="fl">Platform *</label>
+          <select class="ci fw" id="pndPlatform" required>
+            <option value="">Select...</option>
+            <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+          </select>
+        </div>
+        <div class="s1"><label class="fl">Followers</label><input type="number" class="ci fw" id="pndFollowers" placeholder="0" min="0"></div>
+        <div class="s1"><label class="fl">Avg Viewers</label><input type="number" class="ci fw" id="pndAvgV" placeholder="0" min="0"></div>
+        <div class="s2"><label class="fl">Profile Link</label><input type="url" class="ci fw" id="pndLink" placeholder="https://..."></div>
+        <div class="s1"><label class="fl">Manager</label>
+          <select class="ci fw" id="pndManager">
+            <option value="">Unassigned</option>
+            <option>Olga</option><option>Alexander</option><option>Camillo</option>
+          </select>
+        </div>
+        <div class="s2"><label class="fl">Notes</label><textarea class="ci fw" id="pndNotes" placeholder="Additional notes..."></textarea></div>
+      </div>
+      <input type="hidden" id="pndEditId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn-g" onclick="closeM('mPending')">CANCEL</button>
+        <button type="submit" class="cyber-button btn-c" style="padding:8px 20px;">ADD TO PENDING</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- AI Import Modal -->
+<div class="overlay" id="mAIImport">
+  <div class="mbox" style="width:600px;">
+    <div class="m-head">
+      <span class="m-title">Import via AI</span>
+      <button class="m-close" onclick="closeM('mAIImport')">×</button>
+    </div>
+    <div id="aiImportStep1">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">Paste Raw Data</div>
+      <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;line-height:1.6;">
+        Paste streamer info in any format — AI will extract structured data.<br>
+        <span style="color:rgba(255,255,255,0.18);">E.g.: "@latin_traders, tiktok, 9k followers, 200 avg viewers" or "ник: andr3trad3r тикток 3628 фолловеров"</span>
+      </div>
+      <textarea class="ci fw" id="aiRawInput" style="min-height:110px;margin-bottom:12px;" placeholder="Paste raw data here..."></textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <button class="cyber-button btn-c" onclick="parseWithAI()" id="aiParseBtn" style="padding:8px 20px;">PARSE WITH AI</button>
+        <span id="aiParseSpinner" style="display:none;align-items:center;gap:6px;"><span class="ai-spinner"></span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(0,240,255,0.5);">PARSING...</span></span>
+      </div>
+      <div id="aiParseError" style="display:none;background:rgba(255,0,60,0.06);border:1px solid rgba(255,0,60,0.2);border-left:3px solid #FF003C;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#FF003C;"></div>
+    </div>
+    <div id="aiImportStep2" style="display:none;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(39,201,63,0.5);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;">// Review &amp; Edit Parsed Data</div>
+      <div class="fg">
+        <div class="s1"><label class="fl">Nickname</label><input type="text" class="ci fw" id="aiNick" placeholder="Nickname"></div>
+        <div class="s1"><label class="fl">Platform</label>
+          <select class="ci fw" id="aiPlatform">
+            <option value="">Select...</option>
+            <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+          </select>
+        </div>
+        <div class="s1"><label class="fl">Followers</label><input type="number" class="ci fw" id="aiFollowers" placeholder="0" min="0"></div>
+        <div class="s1"><label class="fl">Avg Viewers</label><input type="number" class="ci fw" id="aiAvgV" placeholder="0" min="0"></div>
+        <div class="s2"><label class="fl">Profile Link</label><input type="url" class="ci fw" id="aiLink" placeholder="https://..."></div>
+        <div class="s1"><label class="fl">Manager</label>
+          <select class="ci fw" id="aiManager">
+            <option value="">Unassigned</option>
+            <option>Olga</option><option>Alexander</option><option>Camillo</option>
+          </select>
+        </div>
+        <div class="s2"><label class="fl">Notes</label><textarea class="ci fw" id="aiNotes" placeholder="AI extracted notes..."></textarea></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;">
+        <button class="btn-g" onclick="aiImportBack()">← BACK</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-g" onclick="closeM('mAIImport')">CANCEL</button>
+          <button class="cyber-button btn-c" onclick="addAIImportToPending()" style="padding:8px 20px;">ADD TO PENDING</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Add/Edit Modal -->
+<div class="overlay" id="mScheduleAdd">
+  <div class="mbox" style="width:480px;">
+    <div class="m-head">
+      <span class="m-title" id="mSchedTitle">Add Stream</span>
+      <button class="m-close" onclick="closeM('mScheduleAdd')">×</button>
+    </div>
+    <form onsubmit="saveScheduleEntry(event)">
+      <div class="fg">
+        <div class="s2"><label class="fl">Streamer *</label>
+          <select class="ci fw" id="schedStreamer" required>
+            <option value="">Select streamer...</option>
+          </select>
+        </div>
+        <div class="s1"><label class="fl">Date</label><input type="date" class="ci fw" id="schedDate"></div>
+        <div class="s1"><label class="fl">Time</label><input type="time" class="ci fw" id="schedTime"></div>
+        <div class="s2"><label class="fl">Stream Link</label><input type="url" class="ci fw" id="schedLink" placeholder="https://..."></div>
+        <div class="s1"><label class="fl">Status</label>
+          <select class="ci fw" id="schedStatus">
+            <option value="Scheduled">Scheduled</option>
+            <option value="Live">Live</option>
+            <option value="Done">Done</option>
+            <option value="No Show">No Show</option>
+          </select>
+        </div>
+        <div class="s2"><label class="fl">Notes</label><textarea class="ci fw" id="schedNotes" placeholder="Notes..."></textarea></div>
+      </div>
+      <input type="hidden" id="schedEditId">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn-g" onclick="closeM('mScheduleAdd')">CANCEL</button>
+        <button type="submit" class="cyber-button btn-c" style="padding:8px 20px;">SAVE STREAM</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Notification -->
+<div id="notif"></div>
+
+</div><!-- #app -->
+
+<script>
+/* ===== AUTH ===== */
+(function() {
+  if (!sessionStorage.getItem('streamx_admin')) {
+    window.location.replace('admin-login.html');
+  }
+})();
+
+function logout() {
+  sessionStorage.removeItem('streamx_admin');
+  window.location.replace('admin-login.html');
+}
+
+/* ===== DATE ===== */
+document.getElementById('sysDate').textContent =
+  new Date().toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }).toUpperCase();
+
+/* ===== DATA ===== */
+const db = {
+  get(k)    { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } },
+  getObj(k) { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } },
+  set(k,v)  { localStorage.setItem(k, JSON.stringify(v)); }
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ===== NAV ===== */
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.sec === name)
+  );
+  if (name === 'streamers') renderStreamers();
+  if (name === 'payouts')   renderPayouts();
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'docs')      renderDocs();
+  if (name === 'pending')   renderPending();
+  if (name === 'schedule')  { _schedWeekOff = 0; renderSchedule(); }
+  if (name === 'checker')   renderChecker();
+  if (name === 'analyzer')  renderAnalyzerHistory();
+  updateCounters();
+}
+
+function updateCounters() {
+  document.getElementById('ncStreamers').textContent = db.get('sx_streamers').length;
+  const payPending = db.get('sx_payouts').filter(p => p.status === 'Pending').length;
+  document.getElementById('ncPayouts').textContent = payPending || db.get('sx_payouts').length;
+  document.getElementById('ncPending').textContent  = db.get('sx_pending').length;
+  const todayStreams = db.get('sx_schedule').filter(s => s.date === today()).length;
+  document.getElementById('ncSchedule').textContent = todayStreams;
+}
+
+/* ===== MODALS ===== */
+function openM(id)  { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) closeM(o.id); })
+);
+
+/* ===== NOTIFY ===== */
+let _nt;
+function notify(msg, type='s') {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.className = `show n${type}`;
+  clearTimeout(_nt);
+  _nt = setTimeout(() => { n.className = ''; }, 2800);
+}
+
+/* ===== SORT ===== */
+const _sort = {};
+function sort(tbl, col) {
+  if (!_sort[tbl]) _sort[tbl] = { col:null, dir:1 };
+  _sort[tbl].dir = _sort[tbl].col === col ? _sort[tbl].dir * -1 : 1;
+  _sort[tbl].col = col;
+  if (tbl === 'streamers') renderStreamers();
+  if (tbl === 'payouts')   renderPayouts();
+  if (tbl === 'analytics') renderAnalytics();
+}
+function applySort(arr, tbl) {
+  const s = _sort[tbl];
+  if (!s?.col) return arr;
+  return [...arr].sort((a,b) => {
+    let va = a[s.col], vb = b[s.col];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb||'').toLowerCase(); }
+    if (va == null) va = 0; if (vb == null) vb = 0;
+    return (va < vb ? -1 : va > vb ? 1 : 0) * s.dir;
+  });
+}
+
+/* ===== HELPERS ===== */
+function badge(st) {
+  const m = { Test:'test', Active:'active', Pause:'pause', Dropped:'dropped', Pending:'pending', Paid:'paid' };
+  return `<span class="badge b-${m[st]||'pause'}">${st}</span>`;
+}
+function ptag(p) {
+  const m = { TikTok:'tiktok', YouTube:'youtube', Twitch:'twitch', Kick:'kick' };
+  return `<span class="ptag pt-${m[p]||''}">${p||'—'}</span>`;
+}
+function fmt(n) {
+  if (!n) return '—';
+  const v = Number(n);
+  if (v >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if (v >= 1e3) return (v/1e3).toFixed(1)+'K';
+  return v.toLocaleString();
+}
+function money(n) {
+  if (n == null || n === '') return '—';
+  return '$' + Number(n).toFixed(2);
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ===== STREAMERS ===== */
+let _detailId = null;
+
+function openAddStreamer() {
+  document.getElementById('mStreamerTitle').textContent = 'Add Streamer';
+  ['sEditId','sNick','sFollowers','sAvgV','sPrice','sNotes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('sPlatform').value = '';
+  document.getElementById('sStatus').value   = '';
+  document.getElementById('sManager').value  = '';
+  clearStreamerErrors();
+  openM('mStreamer');
+}
+
+function clearStreamerErrors() {
+  ['errNick','errPlatform','errStatus'].forEach(id => {
+    document.getElementById(id).textContent = '';
+  });
+  ['sNick','sPlatform','sStatus'].forEach(id => {
+    document.getElementById(id).style.borderColor = '';
+  });
+}
+function openEditStreamer(id, e) {
+  e?.stopPropagation();
+  const s = db.get('sx_streamers').find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('mStreamerTitle').textContent = 'Edit Streamer';
+  document.getElementById('sEditId').value    = s.id;
+  document.getElementById('sNick').value      = s.nickname   || '';
+  document.getElementById('sPlatform').value  = s.platform   || '';
+  document.getElementById('sFollowers').value = s.followers  || '';
+  document.getElementById('sAvgV').value      = s.avgViewers || '';
+  document.getElementById('sPrice').value     = s.pricePerStream || '';
+  document.getElementById('sStatus').value    = s.status     || '';
+  document.getElementById('sManager').value   = s.manager    || '';
+  document.getElementById('sNotes').value     = s.notes      || '';
+  clearStreamerErrors();
+  openM('mStreamer');
+}
+function saveStreamer() {
+  // Manual validation
+  const nick     = document.getElementById('sNick').value.trim();
+  const platform = document.getElementById('sPlatform').value;
+  const status   = document.getElementById('sStatus').value;
+
+  let valid = true;
+  const setErr = (errId, inputEl, msg) => {
+    const el = document.getElementById(errId);
+    el.textContent = msg;
+    inputEl.style.borderColor = msg ? '#FF003C' : '';
+    if (msg) valid = false;
+  };
+
+  setErr('errNick',     document.getElementById('sNick'),     nick     ? '' : 'Required');
+  setErr('errPlatform', document.getElementById('sPlatform'), platform ? '' : 'Required');
+  setErr('errStatus',   document.getElementById('sStatus'),   status   ? '' : 'Required');
+
+  if (!valid) return;
+
+  const editId = document.getElementById('sEditId').value;
+  const obj = {
+    id:             editId || uid(),
+    nickname:       nick,
+    platform:       platform,
+    followers:      Number(document.getElementById('sFollowers').value) || 0,
+    avgViewers:     Number(document.getElementById('sAvgV').value)      || 0,
+    pricePerStream: Number(document.getElementById('sPrice').value)     || 0,
+    status:         status,
+    manager:        document.getElementById('sManager').value,
+    notes:          document.getElementById('sNotes').value.trim(),
+    history:        [],
+    createdAt:      new Date().toISOString()
+  };
+
+  let list = db.get('sx_streamers');
+  if (editId) {
+    const i = list.findIndex(x => x.id === editId);
+    if (i >= 0) { obj.history = list[i].history || []; obj.createdAt = list[i].createdAt; list[i] = obj; }
+  } else {
+    list.unshift(obj);
+  }
+  db.set('sx_streamers', list);
+
+  closeM('mStreamer');
+  if (_detailId) showDetail(_detailId);
+  else renderStreamers();
+  updateCounters();
+  notify(editId ? '[OK] Streamer updated' : '[OK] Streamer added');
+}
+function deleteStreamer(id, e) {
+  e?.stopPropagation();
+  if (!confirm('Delete this streamer?')) return;
+  db.set('sx_streamers', db.get('sx_streamers').filter(x => x.id !== id));
+  closeDetail();
+  renderStreamers();
+  updateCounters();
+  notify('[DEL] Streamer removed', 'e');
+}
+function renderStreamers() {
+  const search   = document.getElementById('sSearch')?.value?.toLowerCase() || '';
+  const fStatus  = document.getElementById('fStatus')?.value  || '';
+  const fManager = document.getElementById('fManager')?.value || '';
+  const fPlatform= document.getElementById('fPlatform')?.value|| '';
+  let list = db.get('sx_streamers');
+  if (search)    list = list.filter(s => s.nickname.toLowerCase().includes(search));
+  if (fStatus)   list = list.filter(s => s.status   === fStatus);
+  if (fManager)  list = list.filter(s => s.manager  === fManager);
+  if (fPlatform) list = list.filter(s => s.platform === fPlatform);
+  list = applySort(list, 'streamers');
+
+  // Sort header indicators
+  const s = _sort['streamers'];
+  document.querySelectorAll('#tStreamers th').forEach((th,i) => {
+    th.classList.remove('th-a','th-d');
+    const cols = ['nickname','platform','followers','avgViewers','pricePerStream','status','manager'];
+    if (s?.col === cols[i]) th.classList.add(s.dir === 1 ? 'th-a' : 'th-d');
+  });
+
+  const tbody = document.getElementById('streamersBody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td class="empty-td" colspan="8">// NO STREAMERS FOUND</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr onclick="showDetail('${s.id}')">
+      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:#fff;letter-spacing:0.03em;">${esc(s.nickname)}</td>
+      <td>${ptag(s.platform)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.followers)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.avgViewers)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:#00F0FF;font-size:12px;font-weight:700;">${money(s.pricePerStream)}</td>
+      <td>${badge(s.status)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.35);font-size:11px;">${esc(s.manager)||'—'}</td>
+      <td class="no-click" onclick="event.stopPropagation()">
+        <div style="display:flex;gap:5px;">
+          <button class="btn-g" onclick="openEditStreamer('${s.id}',event)" style="padding:4px 10px;font-size:10px;">EDIT</button>
+          <button class="btn-r" onclick="deleteStreamer('${s.id}',event)" style="padding:4px 10px;font-size:10px;">DEL</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+function showDetail(id) {
+  _detailId = id;
+  const s = db.get('sx_streamers').find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('streamersListView').style.display = 'none';
+  document.getElementById('streamerDetail').style.display = 'block';
+  const hist = s.history || [];
+  const histRows = hist.length
+    ? hist.map((h,i) => `
+      <tr class="no-click">
+        <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);font-size:11px;">${h.date||'—'}</td>
+        <td style="color:rgba(255,255,255,0.65);">${esc(h.desc)||'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:#00F0FF;font-size:12px;font-weight:700;">${money(h.amount)}</td>
+        <td class="no-click"><button class="btn-r" onclick="deleteHistory('${s.id}',${i})" style="padding:3px 8px;font-size:10px;">DEL</button></td>
+      </tr>`).join('')
+    : `<tr><td class="empty-td" colspan="4">// NO STREAM HISTORY</td></tr>`;
+  const earned = hist.reduce((sum,h) => sum+(Number(h.amount)||0), 0);
+  document.getElementById('detailContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 220px;gap:20px;align-items:start;">
+      <div>
+        <div style="background:#080c11;border:1px solid rgba(255,255,255,0.07);padding:24px;margin-bottom:14px;position:relative;">
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#00F0FF 0%,transparent 60%);opacity:0.4;"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">
+            <div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">// STREAMER PROFILE</div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;">${esc(s.nickname)}</span>
+                ${ptag(s.platform)} ${badge(s.status)}
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.2);margin-top:5px;letter-spacing:0.1em;">
+                ADDED ${new Date(s.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}).toUpperCase()}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn-g" onclick="openEditStreamer('${s.id}',null)" style="font-size:10px;padding:6px 12px;">EDIT</button>
+              <button class="btn-r" onclick="deleteStreamer('${s.id}',null)" style="font-size:10px;padding:6px 12px;">DELETE</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;${s.notes?'margin-bottom:14px;':''}">
+            <div class="detail-stat"><div class="detail-stat-label">Followers</div><div class="detail-stat-val" style="color:#fff;">${fmt(s.followers)}</div></div>
+            <div class="detail-stat"><div class="detail-stat-label">Avg Viewers</div><div class="detail-stat-val" style="color:#fff;">${fmt(s.avgViewers)}</div></div>
+            <div class="detail-stat"><div class="detail-stat-label">Price / Stream</div><div class="detail-stat-val sv-cyan">${money(s.pricePerStream)}</div></div>
+          </div>
+          ${s.notes ? `<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);padding:12px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">Notes</div><div style="font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6;">${esc(s.notes)}</div></div>` : ''}
+        </div>
+        <div style="background:#080c11;border:1px solid rgba(255,255,255,0.07);padding:20px;position:relative;">
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(255,0,60,0.5) 0%,transparent 50%);"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.6);">Stream History</span>
+            <button class="cyber-button-sm btn-c" onclick="openAddHistory('${s.id}')" style="padding:5px 14px;font-family:'Chakra Petch',sans-serif;font-size:10px;font-weight:700;">+ ADD STREAM</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th style="cursor:default;">Date</th>
+                <th style="cursor:default;">Description</th>
+                <th style="cursor:default;">Amount</th>
+                <th style="cursor:default;"></th>
+              </tr></thead>
+              <tbody>${histRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div style="background:#080c11;border:1px solid rgba(255,255,255,0.07);padding:20px;">
+        <div style="position:absolute;top:0;left:0;right:0;height:1px;"></div>
+        <div style="margin-bottom:16px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">Manager</div>
+          <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">${esc(s.manager)||'UNASSIGNED'}</div>
+        </div>
+        <div style="height:1px;background:rgba(255,255,255,0.05);margin-bottom:16px;"></div>
+        <div style="margin-bottom:16px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:7px;">Status</div>
+          ${badge(s.status)}
+        </div>
+        <div style="height:1px;background:rgba(255,255,255,0.05);margin-bottom:16px;"></div>
+        <div style="margin-bottom:16px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;">Total Streams</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;color:#00F0FF;text-shadow:0 0 14px rgba(0,240,255,0.4);">${hist.length}</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;">Total Earned</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:#27C93F;">$${earned.toFixed(2)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function closeDetail() {
+  _detailId = null;
+  document.getElementById('streamerDetail').style.display = 'none';
+  document.getElementById('streamersListView').style.display = '';
+  renderStreamers();
+}
+function openAddHistory(sid) {
+  document.getElementById('hStreamerId').value = sid;
+  document.getElementById('hDate').value = today();
+  document.getElementById('hDesc').value = '';
+  document.getElementById('hAmount').value = '';
+  openM('mHistory');
+}
+function saveHistory(e) {
+  e.preventDefault();
+  const sid = document.getElementById('hStreamerId').value;
+  const entry = {
+    date:   document.getElementById('hDate').value,
+    desc:   document.getElementById('hDesc').value.trim(),
+    amount: Number(document.getElementById('hAmount').value)||0
+  };
+  let list = db.get('sx_streamers');
+  const i = list.findIndex(x => x.id === sid);
+  if (i >= 0) {
+    list[i].history = list[i].history||[];
+    list[i].history.unshift(entry);
+    db.set('sx_streamers', list);
+    closeM('mHistory');
+    showDetail(sid);
+    notify('[OK] Stream entry added');
+  }
+}
+function deleteHistory(sid, idx) {
+  if (!confirm('Delete this entry?')) return;
+  let list = db.get('sx_streamers');
+  const i = list.findIndex(x => x.id === sid);
+  if (i >= 0) {
+    list[i].history.splice(idx,1);
+    db.set('sx_streamers', list);
+    showDetail(sid);
+    notify('[DEL] Entry removed', 'e');
+  }
+}
+
+/* ===== PAYOUTS ===== */
+function openAddPayout() {
+  document.getElementById('pEditId').value   = '';
+  document.getElementById('pStreamer').value  = '';
+  document.getElementById('pManager').value   = '';
+  document.getElementById('pStreams').value    = '';
+  document.getElementById('pAmount').value     = '';
+  document.getElementById('pStatus').value     = 'Pending';
+  document.getElementById('pDate').value       = today();
+  openM('mPayout');
+}
+function savePayout(e) {
+  e.preventDefault();
+  const editId = document.getElementById('pEditId').value;
+  const obj = {
+    id:          editId||uid(),
+    streamer:    document.getElementById('pStreamer').value.trim(),
+    manager:     document.getElementById('pManager').value,
+    streamsDone: Number(document.getElementById('pStreams').value)||0,
+    amount:      Number(document.getElementById('pAmount').value)||0,
+    status:      document.getElementById('pStatus').value,
+    date:        document.getElementById('pDate').value,
+    createdAt:   new Date().toISOString()
+  };
+  let list = db.get('sx_payouts');
+  if (editId) { const i=list.findIndex(x=>x.id===editId); if(i>=0) list[i]=obj; }
+  else list.unshift(obj);
+  db.set('sx_payouts', list);
+  closeM('mPayout');
+  renderPayouts();
+  updateCounters();
+  notify(editId ? '[OK] Payout updated' : '[OK] Payout added');
+}
+function markPaid(id) {
+  let list = db.get('sx_payouts');
+  const i = list.findIndex(x=>x.id===id);
+  if (i>=0) { list[i].status='Paid'; db.set('sx_payouts',list); renderPayouts(); updateCounters(); notify('[OK] Marked as paid'); }
+}
+function deletePayout(id) {
+  if (!confirm('Delete this payout?')) return;
+  db.set('sx_payouts', db.get('sx_payouts').filter(x=>x.id!==id));
+  renderPayouts(); updateCounters();
+  notify('[DEL] Payout removed', 'e');
+}
+function renderPayouts() {
+  const fm = document.getElementById('fpManager')?.value||'';
+  const fs = document.getElementById('fpStatus')?.value||'';
+  const all = db.get('sx_payouts');
+  document.getElementById('sPending').innerHTML = '$'+all.filter(p=>p.status==='Pending').reduce((s,p)=>s+p.amount,0).toFixed(2)+'<span class="cursor-blink" style="color:rgba(0,240,255,0.4);font-size:24px;">_</span>';
+  document.getElementById('sPaid').textContent    = '$'+all.filter(p=>p.status==='Paid').reduce((s,p)=>s+p.amount,0).toFixed(2);
+  document.getElementById('sEntries').textContent  = all.length;
+  let list = all;
+  if (fm) list=list.filter(p=>p.manager===fm);
+  if (fs) list=list.filter(p=>p.status===fs);
+  list = applySort(list,'payouts');
+  const tbody = document.getElementById('payoutsBody');
+  if (!list.length) { tbody.innerHTML=`<tr><td class="empty-td" colspan="7">// NO PAYOUT ENTRIES</td></tr>`; return; }
+  tbody.innerHTML = list.map(p=>`
+    <tr class="no-click">
+      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;">${esc(p.streamer)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);font-size:12px;">${p.streamsDone||0}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:#00F0FF;font-size:13px;font-weight:700;">${money(p.amount)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);font-size:11px;">${esc(p.manager)||'—'}</td>
+      <td>${badge(p.status)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.25);font-size:11px;">${p.date||'—'}</td>
+      <td>
+        <div style="display:flex;gap:5px;">
+          ${p.status==='Pending'?`<button class="btn-s" onclick="markPaid('${p.id}')" style="padding:4px 10px;font-size:10px;">✓ PAID</button>`:''}
+          <button class="btn-r" onclick="deletePayout('${p.id}')" style="padding:4px 10px;font-size:10px;">DEL</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+/* ===== ANALYTICS ===== */
+function openAddAnalytics() {
+  ['aEditId','aStreamer','aWeek','aDeposits','aConversions','aRevenue'].forEach(id=>document.getElementById(id).value='');
+  openM('mAnalytics');
+}
+function saveAnalytics(e) {
+  e.preventDefault();
+  const editId = document.getElementById('aEditId').value;
+  const obj = {
+    id:          editId||uid(),
+    streamer:    document.getElementById('aStreamer').value.trim(),
+    week:        document.getElementById('aWeek').value.trim(),
+    deposits:    Number(document.getElementById('aDeposits').value)||0,
+    conversions: Number(document.getElementById('aConversions').value)||0,
+    revenue:     Number(document.getElementById('aRevenue').value)||0,
+    createdAt:   new Date().toISOString()
+  };
+  let list = db.get('sx_analytics');
+  if (editId) { const i=list.findIndex(x=>x.id===editId); if(i>=0) list[i]=obj; }
+  else list.unshift(obj);
+  db.set('sx_analytics', list);
+  closeM('mAnalytics');
+  renderAnalytics();
+  notify(editId ? '[OK] Entry updated' : '[OK] Entry added');
+}
+function deleteAnalytics(id) {
+  if (!confirm('Delete this entry?')) return;
+  db.set('sx_analytics', db.get('sx_analytics').filter(x=>x.id!==id));
+  renderAnalytics();
+  notify('[DEL] Entry removed', 'e');
+}
+function renderAnalytics() {
+  let list = db.get('sx_analytics');
+  const totals = list.reduce((a,r) => { a.dep+=r.deposits||0; a.conv+=r.conversions||0; a.rev+=r.revenue||0; return a; }, {dep:0,conv:0,rev:0});
+  document.getElementById('aTotDep').textContent  = totals.dep;
+  document.getElementById('aTotConv').textContent = totals.conv;
+  document.getElementById('aTotRev').textContent  = '$'+totals.rev.toFixed(2);
+  const rate = totals.dep>0 ? ((totals.conv/totals.dep)*100).toFixed(1) : '0.0';
+  document.getElementById('aConvRate').textContent = rate+'%';
+  list = applySort(list,'analytics');
+  const tbody = document.getElementById('analyticsBody');
+  if (!list.length) { tbody.innerHTML=`<tr><td class="empty-td" colspan="6">// NO ANALYTICS ENTRIES YET</td></tr>`; return; }
+  tbody.innerHTML = list.map(a=>`
+    <tr class="no-click">
+      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;">${esc(a.streamer)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:#00F0FF;font-size:12px;">${a.deposits||0}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:#a78bfa;font-size:12px;">${a.conversions||0}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:#27C93F;font-size:12px;">${money(a.revenue)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);font-size:11px;">${esc(a.week)||'—'}</td>
+      <td><button class="btn-r" onclick="deleteAnalytics('${a.id}')" style="padding:4px 10px;font-size:10px;">DEL</button></td>
+    </tr>`).join('');
+}
+
+/* ===== DOCS ===== */
+const DOCS = [
+  { cat:'Operations', items:[
+    { key:'ops_flow',     title:'Flow',                              desc:'Operational flow documentation' },
+    { key:'ops_req_es',   title:'Requirements (ES)',                 desc:'Requirements in Spanish' },
+    { key:'ops_req_pt',   title:'Requirements (PT)',                 desc:'Requirements in Portuguese' },
+    { key:'ops_comm',     title:'How to communicate with streamers', desc:'Communication guidelines' },
+    { key:'ops_contract', title:'Contract template',                 desc:'Standard streamer contract' },
+  ]},
+  { cat:'Finance', items:[
+    { key:'fin_salaries',  title:'Salaries',               desc:'Team salary tracking (Google Sheets)' },
+    { key:'fin_expenses',  title:'Expenses',               desc:'Company expense tracking' },
+    { key:'fin_olga',      title:"Olga's table",           desc:"Olga's personal tracker" },
+    { key:'fin_alexander', title:"Alexander's table",      desc:"Alexander's personal tracker" },
+    { key:'fin_camillo',   title:"Camillo's table",        desc:"Camillo's personal tracker" },
+    { key:'fin_payouts',   title:'Streamer payouts table', desc:'All streamer payment records' },
+  ]},
+  { cat:'Marketing', items:[
+    { key:'mkt_texts',   title:'Stockity texts',       desc:'Marketing copy and scripts' },
+    { key:'mkt_vacancy', title:'Vacancy',              desc:'Open positions and job posts' },
+    { key:'mkt_catalog', title:'Catalog Google Skills',desc:'Skills catalog on Google' },
+  ]},
+  { cat:'Tracking', items:[
+    { key:'trk_signed',  title:'Signed streamers sheet', desc:'All signed streamer records' },
+    { key:'trk_keys',    title:'Keys sheet',             desc:'Access keys and credentials tracker' },
+    { key:'trk_summary', title:'Summary table',          desc:'Overall performance summary' },
+  ]},
+];
+function renderDocs() {
+  const links = db.getObj('sx_docs');
+  document.getElementById('docsContainer').innerHTML = DOCS.map(({cat,items}) => `
+    <div class="cat-label">${cat}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:8px;margin-bottom:6px;">
+      ${items.map(item => {
+        const url = links[item.key]||'';
+        return `<div class="doc-card">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:rgba(255,255,255,0.75);margin-bottom:2px;">${esc(item.title)}</div>
+            <div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:${url?'3px':'0'};">${esc(item.desc)}</div>
+            ${url?`<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${esc(url)}</div>`:''}
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px;">
+            ${url?`<a href="${url}" target="_blank" rel="noopener" class="cyber-button-sm btn-c" style="text-decoration:none;font-family:'Chakra Petch',sans-serif;font-size:10px;font-weight:700;padding:5px 10px;">OPEN</a>`:''}
+            <button class="btn-g" onclick="openDocLink('${item.key}','${esc(item.title).replace(/'/g,'&#39;')}')" style="font-size:10px;padding:5px 10px;">${url?'EDIT':'SET'}</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+function openDocLink(key, title) {
+  const links = db.getObj('sx_docs');
+  document.getElementById('docLinkKey').value   = key;
+  document.getElementById('docLinkName').textContent = title;
+  document.getElementById('docLinkUrl').value   = links[key]||'';
+  openM('mDocLink');
+}
+function saveDocLink() {
+  const key  = document.getElementById('docLinkKey').value;
+  const url  = document.getElementById('docLinkUrl').value.trim();
+  const links = db.getObj('sx_docs');
+  if (url) links[key]=url; else delete links[key];
+  localStorage.setItem('sx_docs', JSON.stringify(links));
+  closeM('mDocLink');
+  renderDocs();
+  notify('[OK] Link saved');
+}
+
+/* ===== ANTHROPIC API KEY ===== */
+function getApiKey() { return localStorage.getItem('sx_anthropic_key') || ''; }
+function ensureApiKey() {
+  let k = getApiKey();
+  if (!k) {
+    k = prompt('Enter your Anthropic API Key (stored locally in your browser):');
+    if (k && k.trim()) { localStorage.setItem('sx_anthropic_key', k.trim()); return k.trim(); }
+    return '';
+  }
+  return k;
+}
+
+/* ===== PENDING ===== */
+function openAddPending() {
+  document.getElementById('pndEditId').value = '';
+  ['pndNick','pndFollowers','pndAvgV','pndLink','pndNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pndPlatform').value = '';
+  document.getElementById('pndManager').value  = '';
+  openM('mPending');
+}
+
+function savePendingManual(e) {
+  e.preventDefault();
+  const nick     = document.getElementById('pndNick').value.trim();
+  const platform = document.getElementById('pndPlatform').value;
+  if (!nick || !platform) { notify('[ERR] Nickname and platform required', 'e'); return; }
+  const editId = document.getElementById('pndEditId').value;
+  const obj = {
+    id:            editId || uid(),
+    nickname:      nick,
+    platform:      platform,
+    followers:     Number(document.getElementById('pndFollowers').value) || 0,
+    avgViewers:    Number(document.getElementById('pndAvgV').value)      || 0,
+    profileLink:   document.getElementById('pndLink').value.trim(),
+    notes:         document.getElementById('pndNotes').value.trim(),
+    manager:       document.getElementById('pndManager').value,
+    submittedDate: today(),
+    createdAt:     new Date().toISOString()
+  };
+  let list = db.get('sx_pending');
+  if (editId) { const i = list.findIndex(x => x.id === editId); if (i >= 0) list[i] = obj; }
+  else list.unshift(obj);
+  db.set('sx_pending', list);
+  closeM('mPending');
+  renderPending();
+  updateCounters();
+  notify('[OK] Added to pending');
+}
+
+function approvePending(id) {
+  const list = db.get('sx_pending');
+  const item = list.find(x => x.id === id);
+  if (!item) return;
+  const streamer = {
+    id:             uid(),
+    nickname:       item.nickname,
+    platform:       item.platform,
+    followers:      item.followers  || 0,
+    avgViewers:     item.avgViewers || 0,
+    pricePerStream: 0,
+    status:         'Test',
+    manager:        item.manager || '',
+    notes:          item.notes   || '',
+    history:        [],
+    createdAt:      new Date().toISOString()
+  };
+  let streamers = db.get('sx_streamers');
+  streamers.unshift(streamer);
+  db.set('sx_streamers', streamers);
+  db.set('sx_pending', list.filter(x => x.id !== id));
+  renderPending();
+  updateCounters();
+  notify('[OK] Approved — moved to Streamers as Test');
+}
+
+function rejectPending(id) {
+  if (!confirm('Reject and remove this entry?')) return;
+  db.set('sx_pending', db.get('sx_pending').filter(x => x.id !== id));
+  renderPending();
+  updateCounters();
+  notify('[DEL] Entry rejected', 'e');
+}
+
+function renderPending() {
+  const list  = db.get('sx_pending');
+  const tbody = document.getElementById('pendingBody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td class="empty-td" colspan="7">// NO PENDING STREAMERS</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p => `
+    <tr class="no-click">
+      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;">${esc(p.nickname)}</td>
+      <td>${ptag(p.platform)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(p.followers)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(p.avgViewers)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);font-size:11px;">${esc(p.manager)||'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.25);font-size:11px;">${p.submittedDate||'—'}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn-s" onclick="approvePending('${p.id}')" style="padding:4px 10px;font-size:10px;">✓ APPROVE</button>
+          <button class="btn-r" onclick="rejectPending('${p.id}')" style="padding:4px 10px;font-size:10px;">✗ REJECT</button>
+          ${p.profileLink ? `<a href="${esc(p.profileLink)}" target="_blank" rel="noopener" class="btn-g" style="padding:4px 10px;font-size:10px;text-decoration:none;">↗ PROFILE</a>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ===== AI IMPORT ===== */
+function openAIImport() {
+  document.getElementById('aiRawInput').value = '';
+  document.getElementById('aiImportStep1').style.display = '';
+  document.getElementById('aiImportStep2').style.display = 'none';
+  document.getElementById('aiParseError').style.display  = 'none';
+  openM('mAIImport');
+}
+function aiImportBack() {
+  document.getElementById('aiImportStep1').style.display = '';
+  document.getElementById('aiImportStep2').style.display = 'none';
+}
+
+async function parseWithAI() {
+  const key = ensureApiKey();
+  if (!key) return;
+  const raw = document.getElementById('aiRawInput').value.trim();
+  if (!raw) { notify('[ERR] Paste some data first', 'e'); return; }
+
+  const btn     = document.getElementById('aiParseBtn');
+  const spinner = document.getElementById('aiParseSpinner');
+  const errEl   = document.getElementById('aiParseError');
+  btn.style.display = 'none'; spinner.style.display = 'flex'; errEl.style.display = 'none';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content:
+          `Extract streamer data and return ONLY valid JSON (no markdown, no code blocks):\n{"nickname":string,"platform":"tiktok"|"youtube"|"twitch"|"kick","followers":number,"avg_viewers":number,"profile_link":string|null,"notes":string}\nPlatform must be lowercase. Numbers only (no K/M).\nText: ${raw}`
+        }]
+      })
+    });
+    if (!resp.ok) {
+      const e2 = await resp.json().catch(()=>({}));
+      throw new Error(e2?.error?.message || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    let text = (data.content?.[0]?.text || '').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { parsed = null; }
+
+    if (parsed) {
+      document.getElementById('aiNick').value      = parsed.nickname || '';
+      const pmap = { tiktok:'TikTok', youtube:'YouTube', twitch:'Twitch', kick:'Kick' };
+      document.getElementById('aiPlatform').value  = pmap[(parsed.platform||'').toLowerCase()] || '';
+      document.getElementById('aiFollowers').value = parsed.followers   || '';
+      document.getElementById('aiAvgV').value      = parsed.avg_viewers || '';
+      document.getElementById('aiLink').value      = parsed.profile_link || '';
+      document.getElementById('aiNotes').value     = parsed.notes || '';
+    } else {
+      // Fallback: raw text goes to notes
+      document.getElementById('aiNick').value = ''; document.getElementById('aiPlatform').value = '';
+      document.getElementById('aiFollowers').value = ''; document.getElementById('aiAvgV').value = '';
+      document.getElementById('aiLink').value = ''; document.getElementById('aiNotes').value = raw;
+    }
+    document.getElementById('aiImportStep1').style.display = 'none';
+    document.getElementById('aiImportStep2').style.display = '';
+  } catch(err) {
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.style.display = ''; spinner.style.display = 'none';
+  }
+}
+
+function addAIImportToPending() {
+  const nick = document.getElementById('aiNick').value.trim();
+  if (!nick) { notify('[ERR] Nickname required', 'e'); return; }
+  const obj = {
+    id:            uid(),
+    nickname:      nick,
+    platform:      document.getElementById('aiPlatform').value,
+    followers:     Number(document.getElementById('aiFollowers').value) || 0,
+    avgViewers:    Number(document.getElementById('aiAvgV').value)      || 0,
+    profileLink:   document.getElementById('aiLink').value.trim(),
+    notes:         document.getElementById('aiNotes').value.trim(),
+    manager:       document.getElementById('aiManager').value,
+    submittedDate: today(),
+    createdAt:     new Date().toISOString()
+  };
+  let list = db.get('sx_pending');
+  list.unshift(obj);
+  db.set('sx_pending', list);
+  closeM('mAIImport');
+  if (document.getElementById('sec-pending').classList.contains('active')) renderPending();
+  updateCounters();
+  notify('[OK] AI import added to pending');
+}
+
+/* ===== SCHEDULE ===== */
+let _schedWeekOff = 0;
+
+function schedWeekOffset(d) { _schedWeekOff += d; renderSchedule(); }
+
+function getWeekDates(offset) {
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7);
+  mon.setHours(0,0,0,0);
+  return Array.from({length:7}, (_,i) => { const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+}
+
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+
+function renderSchedule() {
+  const days     = getWeekDates(_schedWeekOff);
+  const todayStr = today();
+  const streams  = db.get('sx_schedule');
+  const DAYS     = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  const stMap    = { Scheduled:'sm-sched', Live:'sm-live', Done:'sm-done', 'No Show':'sm-noshow' };
+
+  document.getElementById('schedWeekLabel').textContent =
+    days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase() + ' — ' +
+    days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase();
+
+  document.getElementById('schedGrid').innerHTML = days.map((d,i) => {
+    const ds = fmtDate(d);
+    const dayStreams = streams.filter(s => s.date === ds).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+    const cards = dayStreams.map(s => `
+      <div class="stream-mini ${stMap[s.status]||'sm-sched'}" onclick="openEditSchedule('${s.id}',event)" title="${esc(s.streamerNick)} ${s.time||''}">
+        <div style="display:flex;align-items:center;gap:4px;">
+          ${s.status==='Live'?'<span class="live-dot"></span>':''}
+          <span style="color:rgba(255,255,255,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(s.streamerNick)}</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;">${s.time||'—'}</div>
+      </div>
+    `).join('');
+    return `
+      <div class="day-cell${ds===todayStr?' today-col':''}">
+        <div class="day-name">${DAYS[i]}</div>
+        <div class="day-num">${d.getDate()}</div>
+        ${cards}
+        <button class="day-add-btn" onclick="openAddScheduleDay('${ds}')">+ ADD</button>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('ncSchedule').textContent = streams.filter(s => s.date === todayStr).length;
+}
+
+function openAddScheduleDay(dateStr) {
+  populateSchedDropdown();
+  document.getElementById('schedEditId').value = '';
+  document.getElementById('mSchedTitle').textContent = 'Add Stream';
+  document.getElementById('schedStreamer').value = '';
+  document.getElementById('schedDate').value    = dateStr;
+  document.getElementById('schedTime').value    = '';
+  document.getElementById('schedStatus').value  = 'Scheduled';
+  document.getElementById('schedLink').value    = '';
+  document.getElementById('schedNotes').value   = '';
+  openM('mScheduleAdd');
+}
+
+function openEditSchedule(id, e) {
+  e?.stopPropagation();
+  const s = db.get('sx_schedule').find(x => x.id === id);
+  if (!s) return;
+  populateSchedDropdown();
+  document.getElementById('schedEditId').value = s.id;
+  document.getElementById('mSchedTitle').textContent = 'Edit Stream';
+  document.getElementById('schedDate').value   = s.date       || '';
+  document.getElementById('schedTime').value   = s.time       || '';
+  document.getElementById('schedStatus').value = s.status     || 'Scheduled';
+  document.getElementById('schedLink').value   = s.streamLink || '';
+  document.getElementById('schedNotes').value  = s.notes      || '';
+  const sel = document.getElementById('schedStreamer');
+  sel.value = s.streamerId || '';
+  openM('mScheduleAdd');
+}
+
+function populateSchedDropdown() {
+  const streamers = db.get('sx_streamers').filter(s => ['Active','Test'].includes(s.status));
+  const sel = document.getElementById('schedStreamer');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select streamer...</option>' +
+    streamers.map(s => `<option value="${s.id}">${esc(s.nickname)} (${s.platform})</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function saveScheduleEntry(e) {
+  e.preventDefault();
+  const sid = document.getElementById('schedStreamer').value;
+  if (!sid) { notify('[ERR] Select a streamer', 'e'); return; }
+  const streamer = db.get('sx_streamers').find(x => x.id === sid);
+  const editId   = document.getElementById('schedEditId').value;
+  const old      = editId ? db.get('sx_schedule').find(x => x.id === editId) : null;
+  const obj = {
+    id:           editId || uid(),
+    streamerId:   sid,
+    streamerNick: streamer?.nickname || '',
+    platform:     streamer?.platform || '',
+    date:         document.getElementById('schedDate').value,
+    time:         document.getElementById('schedTime').value,
+    status:       document.getElementById('schedStatus').value,
+    streamLink:   document.getElementById('schedLink').value.trim(),
+    notes:        document.getElementById('schedNotes').value.trim(),
+    checks:       old?.checks || { referralLink:false, announcementDone:false, wentLive:false },
+    createdAt:    old?.createdAt || new Date().toISOString()
+  };
+  let list = db.get('sx_schedule');
+  if (editId) { const i=list.findIndex(x=>x.id===editId); if(i>=0) list[i]=obj; }
+  else list.unshift(obj);
+  db.set('sx_schedule', list);
+  closeM('mScheduleAdd');
+  if (document.getElementById('sec-schedule').classList.contains('active')) renderSchedule();
+  if (document.getElementById('sec-checker').classList.contains('active')) renderChecker();
+  updateCounters();
+  notify(editId ? '[OK] Stream updated' : '[OK] Stream scheduled');
+}
+
+function deleteSchedule(id) {
+  if (!confirm('Delete this stream entry?')) return;
+  db.set('sx_schedule', db.get('sx_schedule').filter(x => x.id !== id));
+  if (document.getElementById('sec-schedule').classList.contains('active')) renderSchedule();
+  if (document.getElementById('sec-checker').classList.contains('active')) renderChecker();
+  updateCounters();
+  notify('[DEL] Stream removed', 'e');
+}
+
+/* ===== CHECKER ===== */
+function renderChecker() {
+  const now      = new Date();
+  const todayStr = today();
+  const cutoff   = new Date(now.getTime() + 48*3600*1000);
+  const cutoffStr= fmtDate(cutoff);
+
+  let streams = db.get('sx_schedule')
+    .filter(s => s.date >= todayStr && s.date <= cutoffStr)
+    .sort((a,b) => (a.date+' '+(a.time||'')).localeCompare(b.date+' '+(b.time||'')));
+
+  const el = document.getElementById('checkerBody');
+  if (!el) return;
+  if (!streams.length) {
+    el.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.15);text-align:center;padding:44px;letter-spacing:0.15em;">// NO STREAMS IN THE NEXT 48 HOURS</div>`;
+    return;
+  }
+
+  const stColors = { Scheduled:'rgba(255,255,255,0.3)', Live:'#27C93F', Done:'#00F0FF', 'No Show':'#FF003C' };
+
+  el.innerHTML = streams.map(s => {
+    const checks   = s.checks || {};
+    const allDone  = checks.referralLink && checks.announcementDone && checks.wentLive;
+    const streamDT = new Date(s.date + 'T' + (s.time || '00:00') + ':00');
+    const isPast   = streamDT < now;
+    const isFlagged= isPast && !allDone && s.status !== 'Done';
+
+    return `
+      <div class="ck-row${isFlagged?' flagged':''}">
+        <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:180px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+              ${s.status==='Live'?'<span class="live-dot"></span>':''}
+              <span style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;">${esc(s.streamerNick)}</span>
+              ${ptag(s.platform)}
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${stColors[s.status]||'rgba(255,255,255,0.3)'};">${s.status}</span>
+              ${isFlagged?'<span class="warn-flag">⚠ UNCHECKED</span>':''}
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:10px;">${s.date||'—'}${s.time?' @ '+s.time:''}</div>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+              <label class="check-item${checks.referralLink?' checked':''}">
+                <input type="checkbox" ${checks.referralLink?'checked':''} onchange="toggleCheck('${s.id}','referralLink',this.checked)">
+                Referral link posted
+              </label>
+              <label class="check-item${checks.announcementDone?' checked':''}">
+                <input type="checkbox" ${checks.announcementDone?'checked':''} onchange="toggleCheck('${s.id}','announcementDone',this.checked)">
+                Announcement done
+              </label>
+              <label class="check-item${checks.wentLive?' checked':''}">
+                <input type="checkbox" ${checks.wentLive?'checked':''} onchange="toggleCheck('${s.id}','wentLive',this.checked)">
+                Stream went live
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
+            ${s.streamLink
+              ? `<a href="${esc(s.streamLink)}" target="_blank" rel="noopener" class="btn-g" style="text-decoration:none;font-size:10px;padding:5px 12px;">↗ CHECK LINK</a>`
+              : `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.15);">NO LINK SET</span>`}
+            <select class="ci" style="font-size:10px;padding:4px 8px;" onchange="updateSchedStatus('${s.id}',this.value)">
+              <option${s.status==='Scheduled'?' selected':''}>Scheduled</option>
+              <option${s.status==='Live'?' selected':''}>Live</option>
+              <option${s.status==='Done'?' selected':''}>Done</option>
+              <option value="No Show"${s.status==='No Show'?' selected':''}>No Show</option>
+            </select>
+            <button class="btn-r" onclick="deleteSchedule('${s.id}')" style="padding:4px 10px;font-size:10px;">DEL</button>
+          </div>
+        </div>
+        ${s.notes ? `<div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.25);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">${esc(s.notes)}</div>` : ''}
+        ${isFlagged ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#FCEE0A;margin-top:8px;letter-spacing:0.07em;">⚠ Link not confirmed — payment pending review</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleCheck(streamId, field, val) {
+  let list = db.get('sx_schedule');
+  const i  = list.findIndex(x => x.id === streamId);
+  if (i >= 0) {
+    list[i].checks = list[i].checks || {};
+    list[i].checks[field] = val;
+    db.set('sx_schedule', list);
+    renderChecker();
+  }
+}
+
+function updateSchedStatus(streamId, status) {
+  let list = db.get('sx_schedule');
+  const i  = list.findIndex(x => x.id === streamId);
+  if (i >= 0) {
+    list[i].status = status;
+    db.set('sx_schedule', list);
+    if (document.getElementById('sec-checker').classList.contains('active'))  renderChecker();
+    if (document.getElementById('sec-schedule').classList.contains('active')) renderSchedule();
+    notify('[OK] Status updated');
+  }
+}
+
+/* ===== ANALYZER ===== */
+async function runAnalysis() {
+  const key = ensureApiKey();
+  if (!key) return;
+  const input = document.getElementById('analyzerInput').value.trim();
+  if (!input) { notify('[ERR] Paste some data first', 'e'); return; }
+
+  const btn     = document.getElementById('analyzerBtn');
+  const spinner = document.getElementById('analyzerSpinner');
+  btn.style.display = 'none'; spinner.style.display = 'flex';
+  document.getElementById('analyzerResult').style.display = 'none';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content:
+          `You are a streaming affiliate marketing expert. Analyze this streamer and return ONLY valid JSON (no markdown):\n{"nickname":string,"platform":string,"estimated_price":number,"audience_quality":number(1-10),"recommended_action":"Accept"|"Negotiate"|"Decline","reasoning":string,"strengths":[string],"concerns":[string]}\nBe realistic. estimated_price is USD per stream.\nData: ${input}`
+        }]
+      })
+    });
+    if (!resp.ok) {
+      const e2 = await resp.json().catch(()=>({}));
+      throw new Error(e2?.error?.message || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    let text = (data.content?.[0]?.text || '').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { throw new Error('Could not parse AI response'); }
+
+    displayAnalysisResult(parsed);
+
+    // Save to history
+    const hist = db.get('sx_analyzer_hist');
+    hist.unshift({ ...parsed, id: uid(), createdAt: new Date().toISOString() });
+    db.set('sx_analyzer_hist', hist.slice(0, 20));
+    renderAnalyzerHistory();
+  } catch(err) {
+    notify('[ERR] ' + err.message, 'e');
+  } finally {
+    btn.style.display = ''; spinner.style.display = 'none';
+  }
+}
+
+function displayAnalysisResult(r) {
+  const q  = r.audience_quality || 0;
+  const rc = q >= 7 ? 'r-high' : q >= 4 ? 'r-mid' : 'r-low';
+  const ac = { Accept:'ab-accept', Negotiate:'ab-negotiate', Decline:'ab-decline' }[r.recommended_action] || 'ab-negotiate';
+  const el = document.getElementById('analyzerResult');
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="analyzer-result">
+      <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;">
+        <div class="rating-badge ${rc}">${q}<span style="font-size:12px;opacity:0.6;">/10</span></div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;">// AI ANALYSIS RESULT</div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:7px;">
+            ${esc(r.nickname||'Unknown')} <span style="font-size:13px;color:rgba(255,255,255,0.35);">${esc(r.platform||'')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span class="action-badge ${ac}">${r.recommended_action||'—'}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:#00F0FF;">
+              $${Number(r.estimated_price||0).toFixed(0)}<span style="font-size:9px;color:rgba(0,240,255,0.4);"> / STREAM</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;padding:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);margin-bottom:16px;">${esc(r.reasoning||'')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(39,201,63,0.5);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">Strengths</div>
+          ${(r.strengths||[]).map(s=>`<div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">+ ${esc(s)}</div>`).join('') || '<div style="font-size:11px;color:rgba(255,255,255,0.2);">—</div>'}
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,0,60,0.5);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">Concerns</div>
+          ${(r.concerns||[]).map(c=>`<div style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">— ${esc(c)}</div>`).join('') || '<div style="font-size:11px;color:rgba(255,255,255,0.2);">—</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showAnalysisById(id) {
+  const hist = db.get('sx_analyzer_hist');
+  const r    = hist.find(x => x.id === id);
+  if (r) displayAnalysisResult(r);
+}
+
+function renderAnalyzerHistory() {
+  const hist = db.get('sx_analyzer_hist');
+  const el   = document.getElementById('analyzerHistory');
+  if (!el) return;
+  if (!hist.length) { el.innerHTML = ''; return; }
+  const acColors = { Accept:'#27C93F', Negotiate:'#FCEE0A', Decline:'#FF003C' };
+  el.innerHTML = `
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">// Recent Analyses</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;">
+      ${hist.slice(0,8).map(r => {
+        const q  = r.audience_quality || 0;
+        const rc = q>=7?'#27C93F':q>=4?'#FCEE0A':'#FF003C';
+        const ac = acColors[r.recommended_action] || '#FCEE0A';
+        return `<div style="background:#080c11;border:1px solid rgba(255,255,255,0.07);padding:14px;cursor:pointer;transition:border-color 0.18s;" onmouseenter="this.style.borderColor='rgba(0,240,255,0.2)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.07)'" onclick="showAnalysisById('${r.id}')">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:${rc};">${q}/10</span>
+            <span style="font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.nickname||'?')}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${ac};flex-shrink:0;">${r.recommended_action||'—'}</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.2);">$${Number(r.estimated_price||0).toFixed(0)}/stream · ${new Date(r.createdAt).toLocaleDateString()}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/* ===== INIT ===== */
+renderStreamers();
+renderAnalyzerHistory();
+updateCounters();
+</script>
+</body>
+</html>

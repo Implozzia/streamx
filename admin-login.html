@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamX // Admin Access</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              black:   '#030508',
+              gray:    '#12151A',
+              cyan:    '#00F0FF',
+              magenta: '#FF003C',
+              yellow:  '#FCEE0A',
+              dark:    '#080c11'
+            }
+          },
+          fontFamily: {
+            display: ['Rajdhani',      'sans-serif'],
+            tech:    ['Chakra Petch',  'sans-serif'],
+            mono:    ['JetBrains Mono','monospace'],
+            body:    ['Inter',         'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { --cut: 14px; }
+
+    body {
+      background-color: #030508;
+      color: #fff;
+      scrollbar-width: thin;
+      scrollbar-color: #00F0FF #030508;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #030508; }
+    ::-webkit-scrollbar-thumb { background: #00F0FF; }
+
+    .bg-grid-pattern {
+      background-image: linear-gradient(to right,#ffffff05 1px,transparent 1px),
+                        linear-gradient(to bottom,#ffffff05 1px,transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .scanlines {
+      background: linear-gradient(to bottom,
+        rgba(255,255,255,0),rgba(255,255,255,0) 50%,
+        rgba(0,0,0,0.2) 50%,rgba(0,0,0,0.2));
+      background-size: 100% 4px;
+    }
+
+    .cyber-panel {
+      clip-path: polygon(
+        0 0,
+        calc(100% - var(--cut)) 0,
+        100% var(--cut),
+        100% 100%,
+        var(--cut) 100%,
+        0 calc(100% - var(--cut))
+      );
+    }
+
+    .cyber-button {
+      clip-path: polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);
+      transition: all 0.2s cubic-bezier(0.25,1,0.5,1);
+    }
+    .cyber-button:hover {
+      transform: translate(-2px,-2px);
+      box-shadow: 4px 4px 0px #FF003C;
+      background-color: #00F0FF !important;
+      color: #030508 !important;
+    }
+    .cyber-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .sys-ui-line {
+      position: relative;
+    }
+    .sys-ui-line::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; width: 100%; height: 1px;
+      background: linear-gradient(90deg, #00F0FF, transparent);
+      opacity: 0.4;
+    }
+
+    .glow-text {
+      text-shadow: 0 0 10px rgba(0,240,255,0.7);
+    }
+
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+
+    @keyframes shake {
+      0%,100% { transform:translateX(0); }
+      15%,45%,75% { transform:translateX(-8px); }
+      30%,60%,90% { transform:translateX(8px); }
+    }
+    .shake { animation: shake 0.45s ease both; }
+
+    @keyframes flicker {
+      0%,93%,97%,100% { opacity:1; }
+      94%,96% { opacity:0.6; }
+    }
+    .flicker { animation: flicker 6s infinite; }
+
+    .cyber-input {
+      background: rgba(0,240,255,0.03);
+      border: 1px solid rgba(0,240,255,0.2);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .cyber-input:focus {
+      border-color: #00F0FF;
+      background: rgba(0,240,255,0.05);
+      box-shadow: 0 0 0 1px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.03);
+    }
+    .cyber-input.error {
+      border-color: #FF003C;
+      box-shadow: 0 0 0 1px rgba(255,0,60,0.2);
+    }
+    .cyber-input::placeholder { color: rgba(255,255,255,0.15); }
+  </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col items-center justify-center relative overflow-hidden selection:bg-cyber-cyan selection:text-cyber-black">
+
+  <!-- FX Layers -->
+  <div class="fixed inset-0 bg-grid-pattern z-[-2] opacity-20"></div>
+  <div class="fixed inset-0 scanlines z-50 pointer-events-none opacity-[0.15]"></div>
+  <div class="fixed top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyber-magenta via-cyber-cyan to-cyber-magenta z-50"></div>
+
+  <!-- System status bar -->
+  <div class="fixed top-3 left-0 w-full z-40 px-6 flex justify-between items-center pointer-events-none">
+    <div class="font-mono text-[10px] text-cyber-cyan tracking-[0.2em] opacity-60">
+      STREAMX // ADMIN PORTAL
+    </div>
+    <div class="font-mono text-[10px] text-white/30 tracking-widest hidden sm:block" id="sysDate"></div>
+  </div>
+
+  <!-- Edge vignette -->
+  <div class="fixed inset-0 pointer-events-none shadow-[inset_0_0_120px_rgba(3,5,8,0.8)] z-40"></div>
+
+  <!-- Glow orb -->
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+       style="background:radial-gradient(circle,rgba(0,240,255,0.06) 0%,rgba(3,5,8,0) 70%);"></div>
+
+  <div class="relative z-10 w-full max-w-md px-6">
+
+    <!-- Logo -->
+    <div class="text-center mb-12 flicker">
+      <div class="font-mono text-[10px] text-cyber-magenta tracking-[0.35em] uppercase mb-3 opacity-80">
+        INTERNAL SYSTEM
+      </div>
+      <div class="font-display font-bold text-[56px] leading-none uppercase tracking-tight">
+        STREAM<span class="text-cyber-cyan glow-text">[X]</span>
+      </div>
+      <div class="font-mono text-[10px] text-white/30 tracking-[0.3em] mt-2">
+        ADMIN // AUTHORIZED ACCESS ONLY
+      </div>
+    </div>
+
+    <!-- Login panel -->
+    <div class="cyber-panel bg-[#080c11] border border-white/10 p-8 relative" id="loginCard">
+
+      <!-- Panel corner label -->
+      <div class="absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-cyber-cyan/50 via-transparent to-transparent"></div>
+
+      <div class="font-mono text-[10px] text-cyber-cyan tracking-[0.3em] uppercase mb-6 opacity-70 flex items-center gap-2">
+        <span class="w-2 h-2 bg-cyber-cyan rounded-full animate-pulse inline-block"></span>
+        AUTHENTICATION REQUIRED
+      </div>
+
+      <!-- Terminal prompt -->
+      <div class="font-mono text-sm text-white/40 mb-4">
+        <span class="text-cyber-magenta">root@streamx:~$</span> ./admin_login.sh
+      </div>
+
+      <!-- Error message -->
+      <div id="errorMsg" class="font-mono text-xs text-cyber-magenta mb-4 hidden">
+        <span class="opacity-60">[ERROR]</span> Access denied — invalid credentials
+      </div>
+
+      <!-- Input -->
+      <div class="mb-6">
+        <label class="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase block mb-2">
+          ACCESS CODE
+        </label>
+        <div class="relative">
+          <input
+            type="password"
+            id="pwdInput"
+            class="cyber-input w-full px-4 py-3 text-sm tracking-wider"
+            placeholder="••••••••••••"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') login()"
+          >
+          <button
+            type="button"
+            onclick="togglePwd()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-cyber-cyan transition-colors cursor-pointer"
+            aria-label="Toggle password visibility"
+          >
+            <svg id="eyeOff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+            <svg id="eyeOn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none;">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Login button -->
+      <button
+        id="loginBtn"
+        onclick="login()"
+        class="cyber-button bg-white text-cyber-black font-tech font-bold uppercase tracking-wider text-sm px-6 py-3 w-full cursor-pointer"
+      >
+        AUTHENTICATE →
+      </button>
+
+      <!-- Footer hint -->
+      <div class="mt-6 font-mono text-[10px] text-white/20 tracking-widest text-center">
+        > SESSION EXPIRES ON WINDOW CLOSE
+      </div>
+    </div>
+
+    <!-- Bottom label -->
+    <div class="text-center mt-6 font-mono text-[10px] text-white/10 tracking-[0.2em]">
+      STREAMX INTERNAL // EST. 2025
+    </div>
+
+  </div>
+
+  <script>
+    const PASSWORD = 'streamx2025';
+    let visible = false;
+
+    // Date
+    document.getElementById('sysDate').textContent =
+      new Date().toISOString().replace('T',' ').slice(0,16) + ' UTC';
+
+    function togglePwd() {
+      visible = !visible;
+      const inp = document.getElementById('pwdInput');
+      inp.type = visible ? 'text' : 'password';
+      document.getElementById('eyeOff').style.display = visible ? 'none' : '';
+      document.getElementById('eyeOn').style.display  = visible ? '' : 'none';
+    }
+
+    function login() {
+      const inp   = document.getElementById('pwdInput');
+      const card  = document.getElementById('loginCard');
+      const err   = document.getElementById('errorMsg');
+      const btn   = document.getElementById('loginBtn');
+
+      if (inp.value === PASSWORD) {
+        btn.textContent = 'ACCESS GRANTED...';
+        btn.disabled = true;
+        inp.style.borderColor = '#00F0FF';
+        sessionStorage.setItem('streamx_admin', 'authenticated');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 400);
+      } else {
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+        inp.classList.add('error');
+        err.classList.remove('hidden');
+        inp.value = '';
+        setTimeout(() => inp.classList.remove('error'), 1500);
+      }
+    }
+  </script>
+
+</body>
+</html>
