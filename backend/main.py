@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from config import settings
 from routers import auth, streamers, leads, payouts, schedule, tools
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(
     title="StreamX API",
@@ -46,16 +46,16 @@ async def health():
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return FileResponse(ROOT_DIR / "index.html")
+    return FileResponse(BASE_DIR / "static" / "index.html")
 
 
 @app.get("/admin", include_in_schema=False)
 @app.get("/admin.html", include_in_schema=False)
 async def admin_page():
-    return FileResponse(ROOT_DIR / "admin.html")
+    return FileResponse(BASE_DIR / "static" / "admin.html")
 
 
 @app.get("/admin-login", include_in_schema=False)
 @app.get("/admin-login.html", include_in_schema=False)
 async def admin_login_page():
-    return FileResponse(ROOT_DIR / "admin-login.html")
+    return FileResponse(BASE_DIR / "static" / "admin-login.html")
