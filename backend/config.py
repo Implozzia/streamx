@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,9 +18,18 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "changeme123"
     ADMIN_FULL_NAME: str = "Administrator"
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_db_url_scheme(cls, v: str) -> str:
+        if v.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
+
     @property
     def origins(self) -> list[str]:
-        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+        if not self.ALLOWED_ORIGINS.strip():
+            return ["*"]
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
 
 settings = Settings()
