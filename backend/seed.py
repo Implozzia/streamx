@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import hash_password
+from auth import hash_password, verify_password
 from config import settings
 from database import AsyncSessionLocal, engine
 from models import Base, User, UserRole
@@ -30,20 +30,24 @@ async def seed() -> None:
             select(User).where(User.email == settings.ADMIN_EMAIL)
         )
         if existing:
-            print(f"Admin user already exists: {settings.ADMIN_EMAIL}")
+            if not verify_password(settings.ADMIN_PASSWORD, existing.password_hash):
+                existing.password_hash = hash_password(settings.ADMIN_PASSWORD)
+                await session.commit()
+                print(f"Admin password updated: {settings.ADMIN_EMAIL}")
+            else:
+                print(f"Admin user already exists, password up to date: {settings.ADMIN_EMAIL}")
             return
 
         admin = User(
             email=settings.ADMIN_EMAIL,
-            password_hash=hash_password("changeme123"),
+            password_hash=hash_password(settings.ADMIN_PASSWORD),
             full_name=settings.ADMIN_FULL_NAME,
             role=UserRole.admin,
             is_active=True,
         )
         session.add(admin)
         await session.commit()
-        print(f"Admin user created: {settings.ADMIN_EMAIL} / changeme123")
-        print("IMPORTANT: change the password after first login!")
+        print(f"Admin user created: {settings.ADMIN_EMAIL}")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from dependencies import require_any
-from models import Lead, LeadStatus, PaymentStatus, Stream, Streamer, StreamerStatus, User
+from models import Lead, LeadStatus, PaymentStatus, Stream, Streamer, User
 
 router = APIRouter()
 

@@ -1,13 +1,15 @@
-import math
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from dependencies import get_current_user, require_any
-from models import Streamer, User, UserRole
+from dependencies import require_any
+from models import FunnelStatus, Geo, Platform, Streamer, User, UserRole
 from schemas import StreamerCreate, StreamerOut, StreamerUpdate
 
 router = APIRouter()
@@ -21,11 +23,13 @@ def _apply_manager_filter(q, current_user: User):
 
 @router.get("", response_model=dict)
 async def list_streamers(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    status: str | None = None,
-    geo: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    status: FunnelStatus | None = None,
+    platform: Platform | None = None,
+    geo: Geo | None = None,
     manager_id: int | None = None,
+    search: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_any),
 ):
@@ -34,22 +38,25 @@ async def list_streamers(
 
     if status:
         q = q.where(Streamer.status == status)
+    if platform:
+        q = q.where(Streamer.platform == platform)
     if geo:
-        q = q.where(Streamer.geo.ilike(f"%{geo}%"))
+        q = q.where(Streamer.geo == geo)
     if manager_id:
         q = q.where(Streamer.manager_id == manager_id)
+    if search:
+        q = q.where(Streamer.nickname.ilike(f"%{search}%"))
 
     total = await db.scalar(select(func.count()).select_from(q.subquery()))
-    q = q.order_by(Streamer.created_at.desc()).offset((page - 1) * size).limit(size)
+    q = q.order_by(Streamer.updated_at.desc()).offset(skip).limit(limit)
     result = await db.execute(q)
     items = result.scalars().all()
 
     return {
-        "items": [StreamerOut.model_validate(i) for i in items],
+        "items": [jsonable_encoder(StreamerOut.model_validate(i)) for i in items],
         "total": total,
-        "page": page,
-        "size": size,
-        "pages": math.ceil(total / size) if total else 1,
+        "skip": skip,
+        "limit": limit,
     }
 
 
@@ -70,7 +77,7 @@ async def get_streamer(
     return streamer
 
 
-@router.post("", response_model=StreamerOut, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_streamer(
     body: StreamerCreate,
     db: AsyncSession = Depends(get_db),
@@ -79,15 +86,36 @@ async def create_streamer(
     if current_user.role in (UserRole.analyst, UserRole.lead_manager):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
+    # Antiduplicate check by profile_url
+    dup_result = await db.execute(
+        select(Streamer)
+        .options(selectinload(Streamer.manager))
+        .where(Streamer.profile_url == body.profile_url)
+    )
+    existing = dup_result.scalar_one_or_none()
+    if existing:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "duplicate",
+                "existing": jsonable_encoder(StreamerOut.model_validate(existing)),
+            },
+        )
+
     data = body.model_dump()
-    if current_user.role == UserRole.manager:
+    # Auto-assign current user as manager if not explicitly provided
+    if not data.get("manager_id"):
         data["manager_id"] = current_user.id
+    data["last_status_change_at"] = datetime.now(timezone.utc)
 
     streamer = Streamer(**data)
     db.add(streamer)
     await db.flush()
     await db.refresh(streamer, ["manager"])
-    return streamer
+    return JSONResponse(
+        status_code=201,
+        content=jsonable_encoder(StreamerOut.model_validate(streamer)),
+    )
 
 
 @router.patch("/{streamer_id}", response_model=StreamerOut)
@@ -109,7 +137,11 @@ async def update_streamer(
     if current_user.role == UserRole.manager and streamer.manager_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    if "status" in updates and updates["status"] != streamer.status:
+        updates["last_status_change_at"] = datetime.now(timezone.utc)
+
+    for field, value in updates.items():
         setattr(streamer, field, value)
     await db.flush()
     await db.refresh(streamer, ["manager"])

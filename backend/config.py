@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5500,http://localhost:8000,https://streamx.team"
 
     ADMIN_EMAIL: str = "admin@streamx.team"
-    ADMIN_PASSWORD: str = "changeme123"
+    ADMIN_PASSWORD: str = Field(..., description="Admin password from Railway env")
     ADMIN_FULL_NAME: str = "Administrator"
 
     @field_validator("DATABASE_URL", mode="before")

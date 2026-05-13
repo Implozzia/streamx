@@ -2,9 +2,9 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import AnyHttpUrl, BaseModel, EmailStr, field_validator
 
-from models import LeadStatus, PaymentStatus, StreamerStatus, UserRole, WalletType
+from models import FunnelStatus, Geo, LeadStatus, PaymentStatus, Platform, UserRole, WalletType
 
 
 # ─── Base helpers ─────────────────────────────────────────────────────────────
@@ -37,6 +37,12 @@ class UserOut(OrmBase):
     role: UserRole
     is_active: bool
     created_at: datetime
+
+
+class ManagerInfo(OrmBase):
+    id: int
+    full_name: str
+    email: str
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -97,26 +103,34 @@ class LeadOut(OrmBase):
 
 class StreamerCreate(BaseModel):
     nickname: str
-    platform: Optional[str] = None
-    geo: Optional[str] = None
-    tiktok_link: Optional[str] = None
-    tg_link: Optional[str] = None
-    tg_channel: Optional[str] = None
-    bot_link: Optional[str] = None
-    stockity_login: Optional[str] = None
-    stockity_password: Optional[str] = None
-    price_per_stream: Optional[Decimal] = None
-    wallet_address: Optional[str] = None
-    wallet_type: Optional[WalletType] = None
-    status: StreamerStatus = StreamerStatus.active
-    manager_id: Optional[int] = None
+    profile_url: str
+    platform: Platform
+    geo: Geo
+    followers: Optional[int] = None
     notes: Optional[str] = None
+    status: FunnelStatus = FunnelStatus.NEW
+    manager_id: Optional[int] = None
+
+    @field_validator("profile_url")
+    @classmethod
+    def validate_profile_url(cls, v: str) -> str:
+        try:
+            AnyHttpUrl(v)
+        except Exception:
+            raise ValueError("profile_url must be a valid HTTP/HTTPS URL")
+        return v
 
 
 class StreamerUpdate(BaseModel):
     nickname: Optional[str] = None
-    platform: Optional[str] = None
-    geo: Optional[str] = None
+    profile_url: Optional[str] = None
+    platform: Optional[Platform] = None
+    geo: Optional[Geo] = None
+    followers: Optional[int] = None
+    notes: Optional[str] = None
+    status: Optional[FunnelStatus] = None
+    manager_id: Optional[int] = None
+    # ACTIVE-stage fields (filled once streamer reaches ACTIVE status)
     tiktok_link: Optional[str] = None
     tg_link: Optional[str] = None
     tg_channel: Optional[str] = None
@@ -126,16 +140,30 @@ class StreamerUpdate(BaseModel):
     price_per_stream: Optional[Decimal] = None
     wallet_address: Optional[str] = None
     wallet_type: Optional[WalletType] = None
-    status: Optional[StreamerStatus] = None
-    manager_id: Optional[int] = None
-    notes: Optional[str] = None
+
+    @field_validator("profile_url")
+    @classmethod
+    def validate_profile_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            try:
+                AnyHttpUrl(v)
+            except Exception:
+                raise ValueError("profile_url must be a valid HTTP/HTTPS URL")
+        return v
 
 
 class StreamerOut(OrmBase):
     id: int
     nickname: str
-    platform: Optional[str]
-    geo: Optional[str]
+    profile_url: Optional[str]
+    platform: Optional[Platform]
+    geo: Optional[Geo]
+    followers: Optional[int]
+    notes: Optional[str]
+    status: FunnelStatus
+    manager_id: Optional[int]
+    manager: Optional[ManagerInfo]
+    # ACTIVE-stage fields
     tiktok_link: Optional[str]
     tg_link: Optional[str]
     tg_channel: Optional[str]
@@ -145,11 +173,9 @@ class StreamerOut(OrmBase):
     price_per_stream: Optional[Decimal]
     wallet_address: Optional[str]
     wallet_type: Optional[WalletType]
-    status: StreamerStatus
-    manager_id: Optional[int]
-    manager: Optional[UserOut]
-    notes: Optional[str]
     created_at: datetime
+    updated_at: datetime
+    last_status_change_at: Optional[datetime]
 
 
 # ─── Stream (payouts) ─────────────────────────────────────────────────────────

@@ -642,15 +642,24 @@
         <input type="text" class="ci" id="sSearch" placeholder="Search nickname..." style="width:175px;" oninput="renderStreamers()">
         <select class="ci" id="fStatus" onchange="renderStreamers()">
           <option value="">All Status</option>
-          <option>Test</option><option>Active</option><option>Pause</option><option>Dropped</option>
+          <option value="NEW">New</option>
+          <option value="REQUEST_SENT">Request Sent</option>
+          <option value="REPLIED">Replied</option>
+          <option value="NEGOTIATING">Negotiating</option>
+          <option value="APPROVED">Approved</option>
+          <option value="ACTIVE">Active</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="DEAD">Dead</option>
         </select>
         <select class="ci" id="fManager" onchange="renderStreamers()">
           <option value="">All Managers</option>
-          <option>Olga</option><option>Alexander</option><option>Camillo</option>
         </select>
         <select class="ci" id="fPlatform" onchange="renderStreamers()">
           <option value="">All Platforms</option>
-          <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+          <option value="TIKTOK">TikTok</option>
+          <option value="INSTAGRAM">Instagram</option>
+          <option value="YOUTUBE">YouTube</option>
+          <option value="TELEGRAM">Telegram</option>
         </select>
       </div>
 
@@ -661,8 +670,7 @@
               <th onclick="sort('streamers','nickname')">Nickname</th>
               <th onclick="sort('streamers','platform')">Platform</th>
               <th onclick="sort('streamers','followers')">Followers</th>
-              <th onclick="sort('streamers','avgViewers')">Avg Viewers</th>
-              <th onclick="sort('streamers','pricePerStream')">Price / Stream</th>
+              <th onclick="sort('streamers','geo')">Geo</th>
               <th onclick="sort('streamers','status')">Status</th>
               <th onclick="sort('streamers','manager')">Manager</th>
               <th style="cursor:default;">Actions</th>
@@ -1017,35 +1025,60 @@
           <label class="fl">Platform *</label>
           <select class="ci fw" id="sPlatform">
             <option value="">Select...</option>
-            <option>TikTok</option><option>YouTube</option><option>Twitch</option><option>Kick</option>
+            <option value="TIKTOK">TikTok</option>
+            <option value="INSTAGRAM">Instagram</option>
+            <option value="YOUTUBE">YouTube</option>
+            <option value="TELEGRAM">Telegram</option>
           </select>
           <div class="field-err" id="errPlatform"></div>
+        </div>
+        <div class="s2">
+          <label class="fl">Profile URL *</label>
+          <input type="url" class="ci fw" id="sProfileUrl" placeholder="https://tiktok.com/@username">
+          <div class="field-err" id="errProfileUrl"></div>
+        </div>
+        <div class="s1">
+          <label class="fl">Geo *</label>
+          <select class="ci fw" id="sGeo">
+            <option value="">Select...</option>
+            <option value="LATAM">LATAM</option>
+            <option value="BRASIL">Brasil</option>
+            <option value="ARGENTINA">Argentina</option>
+            <option value="COLOMBIA">Colombia</option>
+            <option value="MEXICO">Mexico</option>
+            <option value="PERU">Peru</option>
+            <option value="CHILE">Chile</option>
+            <option value="ECUADOR">Ecuador</option>
+            <option value="BOLIVIA">Bolivia</option>
+            <option value="PANAMA">Panama</option>
+            <option value="VENEZUELA">Venezuela</option>
+            <option value="ESPANA">España</option>
+            <option value="USA">USA</option>
+            <option value="OTHER">Other</option>
+          </select>
+          <div class="field-err" id="errGeo"></div>
         </div>
         <div class="s1">
           <label class="fl">Followers</label>
           <input type="number" class="ci fw" id="sFollowers" placeholder="0" min="0">
         </div>
         <div class="s1">
-          <label class="fl">Avg Viewers</label>
-          <input type="number" class="ci fw" id="sAvgV" placeholder="0" min="0">
-        </div>
-        <div class="s1">
-          <label class="fl">Price / Stream ($)</label>
-          <input type="number" class="ci fw" id="sPrice" placeholder="0.00" step="0.01" min="0">
-        </div>
-        <div class="s1">
-          <label class="fl">Status *</label>
+          <label class="fl">Status</label>
           <select class="ci fw" id="sStatus">
-            <option value="">Select...</option>
-            <option>Test</option><option>Active</option><option>Pause</option><option>Dropped</option>
+            <option value="NEW">🔘 New</option>
+            <option value="REQUEST_SENT">📤 Request Sent</option>
+            <option value="REPLIED">💬 Replied</option>
+            <option value="NEGOTIATING">🤝 Negotiating</option>
+            <option value="APPROVED">✅ Approved</option>
+            <option value="ACTIVE">🟢 Active</option>
+            <option value="REJECTED">❌ Rejected</option>
+            <option value="DEAD">⚫ Dead</option>
           </select>
-          <div class="field-err" id="errStatus"></div>
         </div>
         <div class="s1">
           <label class="fl">Manager</label>
           <select class="ci fw" id="sManager">
-            <option value="">Unassigned</option>
-            <option>Olga</option><option>Alexander</option><option>Camillo</option>
+            <option value="">Auto-assign</option>
           </select>
         </div>
         <div class="s2">
@@ -1296,13 +1329,14 @@
 <script>
 /* ===== AUTH ===== */
 (function() {
-  if (!sessionStorage.getItem('streamx_admin')) {
+  if (!localStorage.getItem('sx_jwt')) {
     window.location.replace('admin-login.html');
   }
 })();
 
 function logout() {
-  sessionStorage.removeItem('streamx_admin');
+  localStorage.removeItem('sx_jwt');
+  localStorage.removeItem('sx_refresh');
   window.location.replace('admin-login.html');
 }
 
@@ -1317,6 +1351,36 @@ const db = {
   set(k,v)  { localStorage.setItem(k, JSON.stringify(v)); }
 };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ===== API CLIENT ===== */
+const apiClient = {
+  baseUrl: '/api',
+  token() { return localStorage.getItem('sx_jwt'); },
+  async request(method, path, body) {
+    const res = await fetch(this.baseUrl + path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + this.token(),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 401) {
+      window.location.href = '/admin-login';
+      return null;
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw { status: res.status, data };
+    return data;
+  },
+  get(path)        { return this.request('GET',    path); },
+  post(path, body) { return this.request('POST',   path, body); },
+  patch(path, body){ return this.request('PATCH',  path, body); },
+  delete(path)     { return this.request('DELETE', path); },
+};
+
+let _streamersCache = [];
+let _managersCache  = [];
 
 /* ===== NAV ===== */
 function showSection(name) {
@@ -1337,7 +1401,7 @@ function showSection(name) {
 }
 
 function updateCounters() {
-  document.getElementById('ncStreamers').textContent = db.get('sx_streamers').length;
+  document.getElementById('ncStreamers').textContent = _streamersCache.length || db.get('sx_streamers').length;
   const payPending = db.get('sx_payouts').filter(p => p.status === 'Pending').length;
   document.getElementById('ncPayouts').textContent = payPending || db.get('sx_payouts').length;
   document.getElementById('ncPending').textContent  = db.get('sx_pending').length;
@@ -1384,13 +1448,30 @@ function applySort(arr, tbl) {
 }
 
 /* ===== HELPERS ===== */
+const _funnelLabels = {
+  NEW:'New', REQUEST_SENT:'Request Sent', REPLIED:'Replied', NEGOTIATING:'Negotiating',
+  APPROVED:'Approved', ACTIVE:'Active', REJECTED:'Rejected', DEAD:'Dead',
+  // legacy localStorage values (payouts/schedule sections still use these)
+  Test:'Test', Pause:'Pause', Dropped:'Dropped', Pending:'Pending', Paid:'Paid',
+};
+const _funnelColors = {
+  NEW:'pause', REQUEST_SENT:'test', REPLIED:'test', NEGOTIATING:'pending',
+  APPROVED:'active', ACTIVE:'active', REJECTED:'dropped', DEAD:'dropped',
+  Test:'test', Active:'active', Pause:'pause', Dropped:'dropped', Pending:'pending', Paid:'paid',
+};
 function badge(st) {
-  const m = { Test:'test', Active:'active', Pause:'pause', Dropped:'dropped', Pending:'pending', Paid:'paid' };
-  return `<span class="badge b-${m[st]||'pause'}">${st}</span>`;
+  return `<span class="badge b-${_funnelColors[st]||'pause'}">${_funnelLabels[st]||st}</span>`;
 }
 function ptag(p) {
-  const m = { TikTok:'tiktok', YouTube:'youtube', Twitch:'twitch', Kick:'kick' };
-  return `<span class="ptag pt-${m[p]||''}">${p||'—'}</span>`;
+  const m = {
+    TIKTOK:'tiktok', TikTok:'tiktok',
+    INSTAGRAM:'tiktok', Instagram:'tiktok',
+    YOUTUBE:'youtube', YouTube:'youtube',
+    TELEGRAM:'kick',   Telegram:'kick',
+    Twitch:'twitch', Kick:'kick',
+  };
+  const labels = { TIKTOK:'TikTok', INSTAGRAM:'Instagram', YOUTUBE:'YouTube', TELEGRAM:'Telegram' };
+  return `<span class="ptag pt-${m[p]||''}">${labels[p]||p||'—'}</span>`;
 }
 function fmt(n) {
   if (!n) return '—';
@@ -1414,44 +1495,46 @@ let _detailId = null;
 
 function openAddStreamer() {
   document.getElementById('mStreamerTitle').textContent = 'Add Streamer';
-  ['sEditId','sNick','sFollowers','sAvgV','sPrice','sNotes'].forEach(id => document.getElementById(id).value='');
+  ['sEditId','sNick','sProfileUrl','sFollowers','sNotes'].forEach(id => document.getElementById(id).value='');
   document.getElementById('sPlatform').value = '';
-  document.getElementById('sStatus').value   = '';
+  document.getElementById('sGeo').value      = '';
+  document.getElementById('sStatus').value   = 'NEW';
   document.getElementById('sManager').value  = '';
   clearStreamerErrors();
   openM('mStreamer');
 }
 
 function clearStreamerErrors() {
-  ['errNick','errPlatform','errStatus'].forEach(id => {
+  ['errNick','errPlatform','errProfileUrl','errGeo'].forEach(id => {
     document.getElementById(id).textContent = '';
   });
-  ['sNick','sPlatform','sStatus'].forEach(id => {
+  ['sNick','sPlatform','sProfileUrl','sGeo'].forEach(id => {
     document.getElementById(id).style.borderColor = '';
   });
 }
 function openEditStreamer(id, e) {
   e?.stopPropagation();
-  const s = db.get('sx_streamers').find(x => x.id === id);
+  const s = _streamersCache.find(x => x.id == id);
   if (!s) return;
   document.getElementById('mStreamerTitle').textContent = 'Edit Streamer';
-  document.getElementById('sEditId').value    = s.id;
-  document.getElementById('sNick').value      = s.nickname   || '';
-  document.getElementById('sPlatform').value  = s.platform   || '';
-  document.getElementById('sFollowers').value = s.followers  || '';
-  document.getElementById('sAvgV').value      = s.avgViewers || '';
-  document.getElementById('sPrice').value     = s.pricePerStream || '';
-  document.getElementById('sStatus').value    = s.status     || '';
-  document.getElementById('sManager').value   = s.manager    || '';
-  document.getElementById('sNotes').value     = s.notes      || '';
+  document.getElementById('sEditId').value      = s.id;
+  document.getElementById('sNick').value        = s.nickname    || '';
+  document.getElementById('sProfileUrl').value  = s.profile_url || '';
+  document.getElementById('sPlatform').value    = s.platform    || '';
+  document.getElementById('sGeo').value         = s.geo         || '';
+  document.getElementById('sFollowers').value   = s.followers   || '';
+  document.getElementById('sStatus').value      = s.status      || 'NEW';
+  document.getElementById('sManager').value     = s.manager_id  || '';
+  document.getElementById('sNotes').value       = s.notes       || '';
   clearStreamerErrors();
   openM('mStreamer');
 }
-function saveStreamer() {
-  // Manual validation
-  const nick     = document.getElementById('sNick').value.trim();
-  const platform = document.getElementById('sPlatform').value;
-  const status   = document.getElementById('sStatus').value;
+async function saveStreamer() {
+  const nick       = document.getElementById('sNick').value.trim();
+  const platform   = document.getElementById('sPlatform').value;
+  const profileUrl = document.getElementById('sProfileUrl').value.trim();
+  const geo        = document.getElementById('sGeo').value;
+  const status     = document.getElementById('sStatus').value || 'NEW';
 
   let valid = true;
   const setErr = (errId, inputEl, msg) => {
@@ -1460,90 +1543,116 @@ function saveStreamer() {
     inputEl.style.borderColor = msg ? '#FF003C' : '';
     if (msg) valid = false;
   };
-
-  setErr('errNick',     document.getElementById('sNick'),     nick     ? '' : 'Required');
-  setErr('errPlatform', document.getElementById('sPlatform'), platform ? '' : 'Required');
-  setErr('errStatus',   document.getElementById('sStatus'),   status   ? '' : 'Required');
-
+  setErr('errNick',       document.getElementById('sNick'),       nick       ? '' : 'Required');
+  setErr('errPlatform',   document.getElementById('sPlatform'),   platform   ? '' : 'Required');
+  setErr('errProfileUrl', document.getElementById('sProfileUrl'), profileUrl ? '' : 'Required');
+  setErr('errGeo',        document.getElementById('sGeo'),        geo        ? '' : 'Required');
   if (!valid) return;
 
-  const editId = document.getElementById('sEditId').value;
-  const obj = {
-    id:             editId || uid(),
-    nickname:       nick,
-    platform:       platform,
-    followers:      Number(document.getElementById('sFollowers').value) || 0,
-    avgViewers:     Number(document.getElementById('sAvgV').value)      || 0,
-    pricePerStream: Number(document.getElementById('sPrice').value)     || 0,
-    status:         status,
-    manager:        document.getElementById('sManager').value,
-    notes:          document.getElementById('sNotes').value.trim(),
-    history:        [],
-    createdAt:      new Date().toISOString()
+  const editId    = document.getElementById('sEditId').value;
+  const managerId = document.getElementById('sManager').value;
+  const payload   = {
+    nickname:    nick,
+    profile_url: profileUrl,
+    platform,
+    geo,
+    status,
+    followers:   Number(document.getElementById('sFollowers').value) || null,
+    notes:       document.getElementById('sNotes').value.trim() || null,
+    manager_id:  managerId ? Number(managerId) : null,
   };
 
-  let list = db.get('sx_streamers');
-  if (editId) {
-    const i = list.findIndex(x => x.id === editId);
-    if (i >= 0) { obj.history = list[i].history || []; obj.createdAt = list[i].createdAt; list[i] = obj; }
-  } else {
-    list.unshift(obj);
+  try {
+    if (editId) {
+      await apiClient.patch('/streamers/' + editId, payload);
+      notify('[OK] Streamer updated');
+    } else {
+      const res = await apiClient.post('/streamers', payload);
+      if (res === null) return; // 401 → modal shown
+      notify('[OK] Streamer added');
+    }
+  } catch(err) {
+    if (err?.status === 409 && err?.data?.detail === 'duplicate') {
+      const ex = err.data.existing;
+      const mgr = ex.manager?.full_name || 'Unknown';
+      if (confirm(`⚠️ Duplicate!\nThis profile is already added by ${mgr} (status: ${ex.status}).\n\nOpen existing record?`)) {
+        closeM('mStreamer');
+        await renderStreamers();
+        showDetail(ex.id);
+      }
+      return;
+    }
+    notify('[ERR] ' + (err?.data?.detail || 'Save failed'), 'e');
+    return;
   }
-  db.set('sx_streamers', list);
 
   closeM('mStreamer');
+  await renderStreamers();
   if (_detailId) showDetail(_detailId);
-  else renderStreamers();
   updateCounters();
-  notify(editId ? '[OK] Streamer updated' : '[OK] Streamer added');
 }
-function deleteStreamer(id, e) {
+async function deleteStreamer(id, e) {
   e?.stopPropagation();
   if (!confirm('Delete this streamer?')) return;
-  db.set('sx_streamers', db.get('sx_streamers').filter(x => x.id !== id));
-  closeDetail();
-  renderStreamers();
-  updateCounters();
-  notify('[DEL] Streamer removed', 'e');
+  try {
+    await apiClient.delete('/streamers/' + id);
+    closeDetail();
+    await renderStreamers();
+    updateCounters();
+    notify('[DEL] Streamer removed', 'e');
+  } catch(err) {
+    notify('[ERR] Delete failed', 'e');
+  }
 }
-function renderStreamers() {
-  const search   = document.getElementById('sSearch')?.value?.toLowerCase() || '';
-  const fStatus  = document.getElementById('fStatus')?.value  || '';
-  const fManager = document.getElementById('fManager')?.value || '';
-  const fPlatform= document.getElementById('fPlatform')?.value|| '';
-  let list = db.get('sx_streamers');
-  if (search)    list = list.filter(s => s.nickname.toLowerCase().includes(search));
-  if (fStatus)   list = list.filter(s => s.status   === fStatus);
-  if (fManager)  list = list.filter(s => s.manager  === fManager);
-  if (fPlatform) list = list.filter(s => s.platform === fPlatform);
-  list = applySort(list, 'streamers');
+async function renderStreamers() {
+  const search    = document.getElementById('sSearch')?.value?.trim()  || '';
+  const fStatus   = document.getElementById('fStatus')?.value          || '';
+  const fManager  = document.getElementById('fManager')?.value         || '';
+  const fPlatform = document.getElementById('fPlatform')?.value        || '';
+
+  const params = new URLSearchParams({ limit: 200 });
+  if (search)    params.set('search',     search);
+  if (fStatus)   params.set('status',     fStatus);
+  if (fPlatform) params.set('platform',   fPlatform);
+  if (fManager)  params.set('manager_id', fManager);
+
+  let data;
+  try {
+    data = await apiClient.get('/streamers?' + params.toString());
+  } catch(err) {
+    console.error('renderStreamers error', err);
+    return;
+  }
+  if (!data) return; // 401 — modal shown
+
+  _streamersCache = data.items || [];
+  let list = applySort(_streamersCache, 'streamers');
 
   // Sort header indicators
   const s = _sort['streamers'];
   document.querySelectorAll('#tStreamers th').forEach((th,i) => {
     th.classList.remove('th-a','th-d');
-    const cols = ['nickname','platform','followers','avgViewers','pricePerStream','status','manager'];
-    if (s?.col === cols[i]) th.classList.add(s.dir === 1 ? 'th-a' : 'th-d');
+    const cols = ['nickname','platform','followers','geo','status','manager'];
+    if (cols[i] && s?.col === cols[i]) th.classList.add(s?.dir === 1 ? 'th-a' : 'th-d');
   });
 
   const tbody = document.getElementById('streamersBody');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td class="empty-td" colspan="8">// NO STREAMERS FOUND</td></tr>`;
+    tbody.innerHTML = `<tr><td class="empty-td" colspan="7">// NO STREAMERS FOUND</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(s => `
-    <tr onclick="showDetail('${s.id}')">
+    <tr onclick="showDetail(${s.id})">
       <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:#fff;letter-spacing:0.03em;">${esc(s.nickname)}</td>
       <td>${ptag(s.platform)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.followers)}</td>
-      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.avgViewers)}</td>
-      <td style="font-family:'JetBrains Mono',monospace;color:#00F0FF;font-size:12px;font-weight:700;">${money(s.pricePerStream)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);font-size:11px;">${esc(s.geo)||'—'}</td>
       <td>${badge(s.status)}</td>
-      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.35);font-size:11px;">${esc(s.manager)||'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.35);font-size:11px;">${esc(s.manager?.full_name)||'—'}</td>
       <td class="no-click" onclick="event.stopPropagation()">
         <div style="display:flex;gap:5px;">
-          <button class="btn-g" onclick="openEditStreamer('${s.id}',event)" style="padding:4px 10px;font-size:10px;">EDIT</button>
-          <button class="btn-r" onclick="deleteStreamer('${s.id}',event)" style="padding:4px 10px;font-size:10px;">DEL</button>
+          <button class="btn-g" onclick="openEditStreamer(${s.id},event)" style="padding:4px 10px;font-size:10px;">EDIT</button>
+          <button class="btn-r" onclick="deleteStreamer(${s.id},event)" style="padding:4px 10px;font-size:10px;">DEL</button>
         </div>
       </td>
     </tr>
@@ -1551,7 +1660,7 @@ function renderStreamers() {
 }
 function showDetail(id) {
   _detailId = id;
-  const s = db.get('sx_streamers').find(x => x.id === id);
+  const s = _streamersCache.find(x => x.id == id);
   if (!s) return;
   document.getElementById('streamersListView').style.display = 'none';
   document.getElementById('streamerDetail').style.display = 'block';
@@ -1579,18 +1688,17 @@ function showDetail(id) {
                 ${ptag(s.platform)} ${badge(s.status)}
               </div>
               <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.2);margin-top:5px;letter-spacing:0.1em;">
-                ADDED ${new Date(s.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}).toUpperCase()}
+                ADDED ${new Date(s.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}).toUpperCase()}
               </div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
-              <button class="btn-g" onclick="openEditStreamer('${s.id}',null)" style="font-size:10px;padding:6px 12px;">EDIT</button>
-              <button class="btn-r" onclick="deleteStreamer('${s.id}',null)" style="font-size:10px;padding:6px 12px;">DELETE</button>
+              <button class="btn-g" onclick="openEditStreamer(${s.id},null)" style="font-size:10px;padding:6px 12px;">EDIT</button>
+              <button class="btn-r" onclick="deleteStreamer(${s.id},null)" style="font-size:10px;padding:6px 12px;">DELETE</button>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;${s.notes?'margin-bottom:14px;':''}">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;${s.notes?'margin-bottom:14px;':''}">
             <div class="detail-stat"><div class="detail-stat-label">Followers</div><div class="detail-stat-val" style="color:#fff;">${fmt(s.followers)}</div></div>
-            <div class="detail-stat"><div class="detail-stat-label">Avg Viewers</div><div class="detail-stat-val" style="color:#fff;">${fmt(s.avgViewers)}</div></div>
-            <div class="detail-stat"><div class="detail-stat-label">Price / Stream</div><div class="detail-stat-val sv-cyan">${money(s.pricePerStream)}</div></div>
+            <div class="detail-stat"><div class="detail-stat-label">Geo</div><div class="detail-stat-val" style="color:#fff;">${esc(s.geo)||'—'}</div></div>
           </div>
           ${s.notes ? `<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);padding:12px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">Notes</div><div style="font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6;">${esc(s.notes)}</div></div>` : ''}
         </div>
@@ -1617,7 +1725,7 @@ function showDetail(id) {
         <div style="position:absolute;top:0;left:0;right:0;height:1px;"></div>
         <div style="margin-bottom:16px;">
           <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">Manager</div>
-          <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">${esc(s.manager)||'UNASSIGNED'}</div>
+          <div style="font-family:'Chakra Petch',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">${esc(s.manager?.full_name)||'UNASSIGNED'}</div>
         </div>
         <div style="height:1px;background:rgba(255,255,255,0.05);margin-bottom:16px;"></div>
         <div style="margin-bottom:16px;">
@@ -1643,6 +1751,19 @@ function closeDetail() {
   document.getElementById('streamersListView').style.display = '';
   renderStreamers();
 }
+
+/* ===== MANAGERS ===== */
+async function loadManagers() {
+  try {
+    const users = await apiClient.get('/auth/users');
+    if (!users) return;
+    _managersCache = users;
+    const opts = users.map(u => `<option value="${u.id}">${esc(u.full_name)}</option>`).join('');
+    document.getElementById('fManager').innerHTML = '<option value="">All Managers</option>' + opts;
+    document.getElementById('sManager').innerHTML = '<option value="">Auto-assign</option>' + opts;
+  } catch(e) { console.warn('loadManagers failed', e); }
+}
+
 function openAddHistory(sid) {
   document.getElementById('hStreamerId').value = sid;
   document.getElementById('hDate').value = today();
@@ -2434,9 +2555,13 @@ function renderAnalyzerHistory() {
 }
 
 /* ===== INIT ===== */
-renderStreamers();
-renderAnalyzerHistory();
-updateCounters();
+(async function init() {
+  renderAnalyzerHistory();
+  updateCounters();
+  await loadManagers();
+  await renderStreamers();
+  updateCounters();
+})();
 </script>
 </body>
 </html>

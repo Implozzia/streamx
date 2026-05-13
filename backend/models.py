@@ -28,10 +28,39 @@ class LeadStatus(str, enum.Enum):
     rejected = "rejected"
 
 
-class StreamerStatus(str, enum.Enum):
-    active = "active"
-    inactive = "inactive"
-    paused = "paused"
+class FunnelStatus(str, enum.Enum):
+    NEW = "NEW"
+    REQUEST_SENT = "REQUEST_SENT"
+    REPLIED = "REPLIED"
+    NEGOTIATING = "NEGOTIATING"
+    APPROVED = "APPROVED"
+    ACTIVE = "ACTIVE"
+    REJECTED = "REJECTED"
+    DEAD = "DEAD"
+
+
+class Platform(str, enum.Enum):
+    TIKTOK = "TIKTOK"
+    INSTAGRAM = "INSTAGRAM"
+    YOUTUBE = "YOUTUBE"
+    TELEGRAM = "TELEGRAM"
+
+
+class Geo(str, enum.Enum):
+    LATAM = "LATAM"
+    BRASIL = "BRASIL"
+    ARGENTINA = "ARGENTINA"
+    COLOMBIA = "COLOMBIA"
+    MEXICO = "MEXICO"
+    PERU = "PERU"
+    CHILE = "CHILE"
+    ECUADOR = "ECUADOR"
+    BOLIVIA = "BOLIVIA"
+    PANAMA = "PANAMA"
+    VENEZUELA = "VENEZUELA"
+    ESPANA = "ESPANA"
+    USA = "USA"
+    OTHER = "OTHER"
 
 
 class WalletType(str, enum.Enum):
@@ -90,8 +119,10 @@ class Streamer(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     nickname: Mapped[str] = mapped_column(String(255), nullable=False)
-    platform: Mapped[str | None] = mapped_column(String(100))
-    geo: Mapped[str | None] = mapped_column(String(100))
+    profile_url: Mapped[str | None] = mapped_column(String(500), unique=True, nullable=True)
+    platform: Mapped[Platform | None] = mapped_column(Enum(Platform, native_enum=False), nullable=True)
+    geo: Mapped[Geo | None] = mapped_column(Enum(Geo, native_enum=False), nullable=True)
+    followers: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     tiktok_link: Mapped[str | None] = mapped_column(String(500))
     tg_link: Mapped[str | None] = mapped_column(String(500))
     tg_channel: Mapped[str | None] = mapped_column(String(255))
@@ -101,10 +132,16 @@ class Streamer(Base):
     price_per_stream: Mapped[float | None] = mapped_column(Numeric(12, 2))
     wallet_address: Mapped[str | None] = mapped_column(String(500))
     wallet_type: Mapped[WalletType | None] = mapped_column(Enum(WalletType))
-    status: Mapped[StreamerStatus] = mapped_column(Enum(StreamerStatus), nullable=False, default=StreamerStatus.active)
+    status: Mapped[FunnelStatus] = mapped_column(
+        Enum(FunnelStatus, native_enum=False), nullable=False, default=FunnelStatus.NEW
+    )
     manager_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="SET NULL"))
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    last_status_change_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     manager: Mapped["User | None"] = relationship("User", back_populates="streamers", foreign_keys=[manager_id])
     streams: Mapped[list["Stream"]] = relationship("Stream", back_populates="streamer")
