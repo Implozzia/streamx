@@ -410,19 +410,25 @@
       background: linear-gradient(90deg, rgba(0,240,255,0.2), transparent);
     }
 
-    /* ==== NOTIFICATION ==== */
-    #notif {
+    /* ==== TOAST SYSTEM ==== */
+    #toast-container {
       position: fixed; bottom: 20px; right: 20px;
-      padding: 10px 18px; z-index: 999;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px;
-      letter-spacing: 0.05em;
-      opacity: 0; transform: translateY(6px);
-      transition: opacity 0.25s, transform 0.25s; pointer-events: none;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999; pointer-events: none;
+      max-width: 340px; align-items: flex-end;
     }
-    #notif.show { opacity: 1; transform: translateY(0); }
-    #notif.ns { background:rgba(39,201,63,0.1);  border:1px solid #27C93F; color:#27C93F; }
-    #notif.ne { background:rgba(255,0,60,0.1);   border:1px solid #FF003C; color:#FF003C; }
-    #notif.ni { background:rgba(0,240,255,0.08); border:1px solid #00F0FF; color:#00F0FF; }
+    .toast {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      letter-spacing: 0.05em; padding: 10px 16px;
+      border-left: 3px solid; pointer-events: auto;
+      opacity: 0; transform: translateX(20px);
+      transition: opacity 0.25s, transform 0.25s;
+      line-height: 1.5; word-break: break-word; width: 100%;
+    }
+    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast.t-success { background: rgba(39,201,63,0.1);  border-color: #27C93F; color: #27C93F; }
+    .toast.t-error   { background: rgba(255,0,60,0.1);   border-color: #FF003C; color: #FF003C; }
+    .toast.t-info    { background: rgba(0,240,255,0.08); border-color: #00F0FF; color: #00F0FF; }
 
     /* ==== DETAIL ==== */
     #streamerDetail { display: none; }
@@ -1321,8 +1327,38 @@
   </div>
 </div>
 
-<!-- Notification -->
-<div id="notif"></div>
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Duplicate Streamer Modal -->
+<div class="overlay" id="mDuplicate">
+  <div class="mbox" style="max-width:440px;">
+    <div class="m-head">
+      <span class="m-title">Контакт уже добавлен</span>
+      <button class="m-close" onclick="closeM('mDuplicate')">×</button>
+    </div>
+    <p id="dupText" style="font-size:13px;line-height:1.7;color:rgba(255,255,255,0.75);margin-bottom:24px;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn-g" onclick="closeM('mDuplicate')">Отмена</button>
+      <button class="cyber-button btn-c" id="dupOpenBtn" style="padding:8px 20px;">Открыть запись</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="overlay" id="mDeleteConfirm">
+  <div class="mbox" style="max-width:360px;">
+    <div class="m-head">
+      <span class="m-title">Подтверждение удаления</span>
+      <button class="m-close" onclick="closeM('mDeleteConfirm')">×</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,0.65);margin-bottom:24px;line-height:1.6;">Удалить стримера? Это действие необратимо.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn-g" onclick="closeM('mDeleteConfirm')">Отмена</button>
+      <button class="cyber-button btn-r" onclick="_execDelete()" style="padding:8px 20px;">Удалить</button>
+    </div>
+  </div>
+</div>
 
 </div><!-- #app -->
 
@@ -1416,14 +1452,77 @@ document.querySelectorAll('.overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) closeM(o.id); })
 );
 
-/* ===== NOTIFY ===== */
-let _nt;
-function notify(msg, type='s') {
-  const n = document.getElementById('notif');
-  n.textContent = msg;
-  n.className = `show n${type}`;
-  clearTimeout(_nt);
-  _nt = setTimeout(() => { n.className = ''; }, 2800);
+/* ===== TOAST SYSTEM ===== */
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast t-${type}`;
+  t.textContent = msg;
+  c.append(t);
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, 4000);
+}
+
+function notify(msg, type = 's') {
+  const map = { s: 'success', e: 'error', i: 'info' };
+  showToast(msg, map[type] || 'info');
+}
+
+/* ===== API ERROR HANDLER ===== */
+const _fieldMap = {
+  nickname:    { err: 'errNick',       input: 'sNick' },
+  platform:    { err: 'errPlatform',   input: 'sPlatform' },
+  profile_url: { err: 'errProfileUrl', input: 'sProfileUrl' },
+  geo:         { err: 'errGeo',        input: 'sGeo' },
+};
+
+function showApiError(err) {
+  if (!err) { showToast('Что-то пошло не так. Попробуйте ещё раз.', 'error'); return; }
+  if (err.status === 422 && Array.isArray(err.data?.detail)) {
+    const unhandled = [];
+    err.data.detail.forEach(e => {
+      const field = e.loc?.[e.loc.length - 1];
+      const m = _fieldMap[field];
+      if (m) {
+        const el  = document.getElementById(m.err);
+        const inp = document.getElementById(m.input);
+        if (el)  el.textContent = e.msg.replace(/^Value error,\s*/i, '');
+        if (inp) inp.style.borderColor = '#FF003C';
+      } else {
+        unhandled.push(e.msg.replace(/^Value error,\s*/i, ''));
+      }
+    });
+    if (unhandled.length) showToast(unhandled.join(' / '), 'error');
+    return;
+  }
+  if (err.status === 409 && err.data?.detail === 'duplicate') {
+    openDuplicateModal(err.data.existing);
+    return;
+  }
+  const msg = typeof err.data?.detail === 'string'
+    ? err.data.detail
+    : 'Что-то пошло не так. Попробуйте ещё раз.';
+  showToast(msg, 'error');
+}
+
+function openDuplicateModal(ex) {
+  const mgr  = ex.manager?.full_name || 'Unassigned';
+  const date = ex.created_at
+    ? new Date(ex.created_at).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' })
+    : '—';
+  document.getElementById('dupText').innerHTML =
+    `<b>@${esc(ex.nickname)}</b> уже в базе.<br>` +
+    `Статус: <b>${ex.status}</b> &nbsp;·&nbsp; Менеджер: <b>${esc(mgr)}</b> &nbsp;·&nbsp; Добавлен: <b>${date}</b>`;
+  document.getElementById('dupOpenBtn').onclick = async () => {
+    closeM('mDuplicate');
+    closeM('mStreamer');
+    await renderStreamers();
+    showDetail(ex.id);
+  };
+  openM('mDuplicate');
 }
 
 /* ===== SORT ===== */
@@ -1565,24 +1664,14 @@ async function saveStreamer() {
   try {
     if (editId) {
       await apiClient.patch('/streamers/' + editId, payload);
-      notify('[OK] Streamer updated');
+      showToast('Streamer updated', 'success');
     } else {
       const res = await apiClient.post('/streamers', payload);
-      if (res === null) return; // 401 → modal shown
-      notify('[OK] Streamer added');
+      if (res === null) return; // 401 → redirect
+      showToast('Streamer created', 'success');
     }
   } catch(err) {
-    if (err?.status === 409 && err?.data?.detail === 'duplicate') {
-      const ex = err.data.existing;
-      const mgr = ex.manager?.full_name || 'Unknown';
-      if (confirm(`⚠️ Duplicate!\nThis profile is already added by ${mgr} (status: ${ex.status}).\n\nOpen existing record?`)) {
-        closeM('mStreamer');
-        await renderStreamers();
-        showDetail(ex.id);
-      }
-      return;
-    }
-    notify('[ERR] ' + (err?.data?.detail || 'Save failed'), 'e');
+    showApiError(err);
     return;
   }
 
@@ -1591,17 +1680,24 @@ async function saveStreamer() {
   if (_detailId) showDetail(_detailId);
   updateCounters();
 }
+let _deleteTarget = null;
 async function deleteStreamer(id, e) {
   e?.stopPropagation();
-  if (!confirm('Delete this streamer?')) return;
+  _deleteTarget = id;
+  openM('mDeleteConfirm');
+}
+async function _execDelete() {
+  closeM('mDeleteConfirm');
   try {
-    await apiClient.delete('/streamers/' + id);
+    await apiClient.delete('/streamers/' + _deleteTarget);
     closeDetail();
     await renderStreamers();
     updateCounters();
-    notify('[DEL] Streamer removed', 'e');
+    showToast('Streamer deleted', 'success');
   } catch(err) {
-    notify('[ERR] Delete failed', 'e');
+    showToast('Delete failed. Try again.', 'error');
+  } finally {
+    _deleteTarget = null;
   }
 }
 async function renderStreamers() {
@@ -2555,6 +2651,17 @@ function renderAnalyzerHistory() {
 }
 
 /* ===== INIT ===== */
+// Clear field-level errors when user corrects input
+{
+  const _inputErrMap = { sNick:'errNick', sPlatform:'errPlatform', sProfileUrl:'errProfileUrl', sGeo:'errGeo' };
+  Object.entries(_inputErrMap).forEach(([inputId, errId]) => {
+    document.getElementById(inputId)?.addEventListener('input', () => {
+      document.getElementById(errId).textContent = '';
+      document.getElementById(inputId).style.borderColor = '';
+    });
+  });
+}
+
 (async function init() {
   renderAnalyzerHistory();
   updateCounters();
