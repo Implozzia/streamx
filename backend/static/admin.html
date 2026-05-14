@@ -426,9 +426,10 @@
       line-height: 1.5; word-break: break-word; width: 100%;
     }
     .toast.show { opacity: 1; transform: translateX(0); }
-    .toast.t-success { background: rgba(39,201,63,0.1);  border-color: #27C93F; color: #27C93F; }
+    .toast.t-success { background: rgba(39,201,63,0.1);   border-color: #27C93F; color: #27C93F; }
     .toast.t-error   { background: rgba(255,0,60,0.1);   border-color: #FF003C; color: #FF003C; }
     .toast.t-info    { background: rgba(0,240,255,0.08); border-color: #00F0FF; color: #00F0FF; }
+    .toast.t-warning { background: rgba(252,238,10,0.08);border-color: #FCEE0A; color: #FCEE0A; }
 
     /* ==== DETAIL ==== */
     #streamerDetail { display: none; }
@@ -522,6 +523,51 @@
     .ab-accept    { color:#27C93F; border-color:rgba(39,201,63,0.4); background:rgba(39,201,63,0.08); }
     .ab-negotiate { color:#FCEE0A; border-color:rgba(252,238,10,0.4); background:rgba(252,238,10,0.08); }
     .ab-decline   { color:#FF003C; border-color:rgba(255,0,60,0.4); background:rgba(255,0,60,0.08); }
+
+    /* ==== INLINE STATUS DROPDOWN ==== */
+    #statusDd {
+      position:fixed; z-index:900; display:none;
+      background:#080c11; border:1px solid rgba(0,240,255,0.18);
+      min-width:175px; padding:4px 0;
+      box-shadow:0 8px 32px rgba(0,0,0,0.75);
+    }
+    .sdd-item {
+      padding:7px 12px; cursor:pointer;
+      display:flex; align-items:center; gap:8px;
+      transition:background 0.12s;
+    }
+    .sdd-item:hover   { background:rgba(0,240,255,0.05); }
+    .sdd-item.sdd-cur { background:rgba(0,240,255,0.09); }
+    .sdd-check { font-size:9px; color:#00F0FF; margin-left:auto; }
+
+    /* ==== BADGE BUTTON (clickable status) ==== */
+    .badge-btn {
+      display:inline-flex; align-items:center; gap:3px;
+      cursor:pointer; border:1px solid transparent;
+      padding:0 3px 0 0; transition:border-color 0.15s;
+    }
+    .badge-btn:hover { border-color:rgba(0,240,255,0.28); }
+    .badge-btn .dd-arr { font-size:8px; color:rgba(255,255,255,0.2); transition:color 0.15s; }
+    .badge-btn:hover .dd-arr { color:rgba(0,240,255,0.6); }
+
+    /* ==== BULK ACTIONS PANEL ==== */
+    #bulkPanel {
+      display:none; align-items:center; gap:8px;
+      padding:7px 14px; position:relative;
+      background:rgba(0,240,255,0.03);
+      border:1px solid rgba(0,240,255,0.15); border-bottom:none;
+    }
+    #bulkStatusDd {
+      position:absolute; top:100%; left:0; margin-top:1px;
+      z-index:800; display:none;
+      background:#080c11; border:1px solid rgba(0,240,255,0.18);
+      min-width:175px; padding:4px 0;
+      box-shadow:0 8px 32px rgba(0,0,0,0.75);
+    }
+
+    /* ==== ROW CHECKBOXES ==== */
+    .cb { width:13px; height:13px; cursor:pointer; accent-color:#00F0FF; }
+    .cb-cell { width:36px !important; padding:10px 6px 10px 14px !important; }
   </style>
 </head>
 
@@ -672,10 +718,22 @@
         </select>
       </div>
 
+      <div id="bulkPanel">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(0,240,255,0.7);white-space:nowrap;">Selected: <b id="bulkSelectedCount">0</b></span>
+        <div style="width:1px;height:14px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>
+        <div style="position:relative;">
+          <button class="btn-g" id="bulkStatusBtn" onclick="toggleBulkStatusDd(event)" style="font-size:10px;padding:5px 12px;">CHANGE STATUS ▼</button>
+          <div id="bulkStatusDd"></div>
+        </div>
+        <button class="btn-r" onclick="openBulkDeleteConfirm()" style="font-size:10px;padding:5px 12px;">DELETE</button>
+        <button class="btn-g" onclick="clearSelection()" style="font-size:10px;padding:5px 10px;margin-left:auto;">✕ CLEAR</button>
+      </div>
+
       <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
         <div style="overflow-x:auto;">
           <table class="data-table" id="tStreamers">
             <thead><tr>
+              <th class="cb-cell" style="cursor:default;"><input type="checkbox" class="cb" id="cbSelectAll" onchange="toggleSelectAll(this)"></th>
               <th onclick="sort('streamers','nickname')">Nickname</th>
               <th onclick="sort('streamers','platform')">Platform</th>
               <th onclick="sort('streamers','followers')">Followers</th>
@@ -1445,6 +1503,24 @@
   </div>
 </div>
 
+<!-- Inline status dropdown (singleton, reused for every row) -->
+<div id="statusDd"></div>
+
+<!-- Bulk Delete Confirm -->
+<div class="overlay" id="mBulkDelete">
+  <div class="mbox" style="max-width:380px;">
+    <div class="m-head">
+      <span class="m-title">Confirm Bulk Delete</span>
+      <button class="m-close" onclick="closeM('mBulkDelete')">×</button>
+    </div>
+    <p id="bulkDeleteMsg" style="font-size:13px;color:rgba(255,255,255,0.65);margin-bottom:24px;line-height:1.6;"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn-g" onclick="closeM('mBulkDelete')">Cancel</button>
+      <button class="cyber-button btn-r" onclick="execBulkDelete()" style="padding:8px 20px;">Delete</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- #app -->
 
 <script>
@@ -1674,6 +1750,22 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ===== SHARED CONCURRENCY POOL ===== */
+async function runPool(queue, limit) {
+  let i = 0;
+  async function next() {
+    if (i >= queue.length) return;
+    const fn = queue[i++];
+    await fn();
+    await next();
+  }
+  const workers = [];
+  for (let w = 0; w < Math.min(limit, queue.length); w++) {
+    workers.push(next());
+  }
+  await Promise.all(workers);
+}
+
 /* ===== BULK ADD ===== */
 let _bulkSession   = 0;  // incremented on open/close to invalidate in-flight imports
 let _bulkCreated   = 0;  // set by runBulkImport, read by finishBulkImport
@@ -1838,22 +1930,7 @@ async function runBulkImport() {
     }
   }
 
-  // Concurrency pool: 5 workers, each pulls the next task when done
   const tasks = lines.map(l => () => processOne(l));
-  async function runPool(queue, limit) {
-    let i = 0;
-    async function next() {
-      if (i >= queue.length) return;
-      const fn = queue[i++];
-      await fn();
-      await next();
-    }
-    const workers = [];
-    for (let w = 0; w < Math.min(limit, queue.length); w++) {
-      workers.push(next());
-    }
-    await Promise.all(workers);
-  }
   await runPool(tasks, 5);
 
   // Modal was closed/reset while we were importing — discard results silently
@@ -2045,6 +2122,205 @@ async function _execDelete() {
     _deleteTarget = null;
   }
 }
+/* ===== INLINE STATUS DROPDOWN ===== */
+const _funnelStatuses = ['NEW','REQUEST_SENT','REPLIED','NEGOTIATING','APPROVED','ACTIVE','REJECTED','DEAD'];
+let _sddTarget = null; // { id, el, oldStatus }
+
+function clickableBadge(id, status) {
+  return `<span class="badge-btn" data-sid="${id}" data-status="${status}" onclick="openStatusDd(event,this)">${badge(status)}<span class="dd-arr">▾</span></span>`;
+}
+
+function openStatusDd(e, triggerEl) {
+  e.stopPropagation();
+  closeBulkStatusDd(); // close bulk dropdown if it was open
+  const dd = document.getElementById('statusDd');
+  // Toggle: close if same trigger is clicked again
+  if (_sddTarget?.el === triggerEl && dd.style.display !== 'none') {
+    closeStatusDd(); return;
+  }
+  const sid    = Number(triggerEl.dataset.sid);
+  const curSt  = triggerEl.dataset.status;
+  _sddTarget   = { id: sid, el: triggerEl, oldStatus: curSt };
+
+  dd.innerHTML = _funnelStatuses.map(st => `
+    <div class="sdd-item${st === curSt ? ' sdd-cur' : ''}" onclick="pickStatus('${st}')">
+      ${badge(st)}<span class="sdd-check">${st === curSt ? '✓' : ''}</span>
+    </div>`).join('');
+
+  // Position: below trigger unless too close to bottom
+  dd.style.display = 'block';
+  const rect = triggerEl.getBoundingClientRect();
+  const ddH  = dd.offsetHeight;
+  const below = rect.bottom + 4 + ddH <= window.innerHeight;
+  dd.style.top  = (below ? rect.bottom + 4 : rect.top - ddH - 4) + 'px';
+  dd.style.left = rect.left + 'px';
+}
+
+function closeStatusDd() {
+  document.getElementById('statusDd').style.display = 'none';
+  _sddTarget = null;
+}
+
+async function pickStatus(newStatus) {
+  if (!_sddTarget) return;
+  const { id, el, oldStatus } = _sddTarget;
+  closeStatusDd();
+  if (newStatus === oldStatus) return;
+
+  // Optimistic update: patch cache + badge HTML
+  const cached = _streamersCache.find(x => x.id === id);
+  if (cached) cached.status = newStatus;
+  el.innerHTML = badge(newStatus) + '<span class="dd-arr">▾</span>';
+  el.dataset.status = newStatus;
+
+  try {
+    await apiClient.patch('/streamers/' + id, { status: newStatus });
+    showToast('Status updated', 'success');
+  } catch(err) {
+    // Rollback
+    if (cached) cached.status = oldStatus;
+    el.innerHTML = badge(oldStatus) + '<span class="dd-arr">▾</span>';
+    el.dataset.status = oldStatus;
+    showToast('Failed to update status', 'error');
+  }
+}
+
+// Close dropdown on outside click, scroll, or Escape
+document.addEventListener('click', () => {
+  if (_sddTarget) closeStatusDd();
+  if (_bulkStatusDdOpen) closeBulkStatusDd();
+});
+document.addEventListener('scroll', () => {
+  if (_sddTarget) closeStatusDd();
+}, true);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeStatusDd(); closeBulkStatusDd(); }
+});
+
+/* ===== BULK ACTIONS ===== */
+let _selectedIds     = new Set();
+let _bulkStatusDdOpen = false;
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('#streamersBody .cb-row').forEach(c => {
+    c.checked = cb.checked;
+    const id = Number(c.dataset.id);
+    if (cb.checked) _selectedIds.add(id);
+    else            _selectedIds.delete(id);
+  });
+  updateBulkPanel();
+}
+
+function toggleRowSelect(id, cb) {
+  if (cb.checked) _selectedIds.add(Number(id));
+  else            _selectedIds.delete(Number(id));
+  _syncSelectAll();
+  updateBulkPanel();
+}
+
+function _syncSelectAll() {
+  const all     = document.querySelectorAll('#streamersBody .cb-row');
+  const checked = document.querySelectorAll('#streamersBody .cb-row:checked');
+  const sa = document.getElementById('cbSelectAll');
+  if (!sa) return;
+  sa.indeterminate = checked.length > 0 && checked.length < all.length;
+  sa.checked       = all.length > 0 && checked.length === all.length;
+}
+
+function updateBulkPanel() {
+  const n = _selectedIds.size;
+  document.getElementById('bulkPanel').style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('bulkSelectedCount').textContent = n;
+}
+
+function clearSelection() {
+  _selectedIds.clear();
+  document.querySelectorAll('#streamersBody .cb-row').forEach(c => c.checked = false);
+  const sa = document.getElementById('cbSelectAll');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  closeBulkStatusDd();
+  updateBulkPanel();
+}
+
+// Bulk status dropdown (positioned absolute to panel)
+function toggleBulkStatusDd(e) {
+  e.stopPropagation();        // prevent document click from closing it immediately
+  closeStatusDd();            // close inline dropdown if open
+  const dd = document.getElementById('bulkStatusDd');
+  if (_bulkStatusDdOpen) { closeBulkStatusDd(); return; }
+  dd.innerHTML = _funnelStatuses.map(st =>
+    `<div class="sdd-item" onclick="execBulkStatus('${st}')">${badge(st)}</div>`
+  ).join('');
+  dd.style.display = 'block';
+  _bulkStatusDdOpen = true;
+}
+
+function closeBulkStatusDd() {
+  document.getElementById('bulkStatusDd').style.display = 'none';
+  _bulkStatusDdOpen = false;
+}
+
+async function execBulkStatus(newStatus) {
+  closeBulkStatusDd();
+  const ids = Array.from(_selectedIds);
+  if (!ids.length) return;
+
+  // Lock panel while running
+  const panel = document.getElementById('bulkPanel');
+  panel.style.opacity = '0.5';
+  panel.style.pointerEvents = 'none';
+  document.getElementById('bulkSelectedCount').textContent =
+    `Updating ${ids.length}…`;
+
+  let ok = 0, fail = 0;
+  await runPool(ids.map(id => async () => {
+    try {
+      await apiClient.patch('/streamers/' + id, { status: newStatus });
+      ok++;
+    } catch(_) { fail++; }
+  }), 5);
+
+  panel.style.opacity = '';
+  panel.style.pointerEvents = '';
+
+  const total = ok + fail;
+  if (fail === 0) showToast(`Updated ${ok} of ${total} streamer${total !== 1 ? 's' : ''}`, 'success');
+  else            showToast(`Updated ${ok} of ${total} streamers (${fail} failed)`, 'warning');
+
+  clearSelection(); // always clear — simple CRM behaviour, no retry-selection
+  await renderStreamers();
+  updateCounters();
+}
+
+function openBulkDeleteConfirm() {
+  const n = _selectedIds.size;
+  if (!n) return;
+  document.getElementById('bulkDeleteMsg').textContent =
+    `Delete ${n} streamer${n !== 1 ? 's' : ''}? This action cannot be undone.`;
+  openM('mBulkDelete');
+}
+
+async function execBulkDelete() {
+  closeM('mBulkDelete');
+  const ids = Array.from(_selectedIds);
+  if (!ids.length) return;
+
+  let ok = 0, fail = 0;
+  await runPool(ids.map(id => async () => {
+    try {
+      await apiClient.delete('/streamers/' + id);
+      ok++;
+    } catch(_) { fail++; }
+  }), 5);
+
+  if (fail === 0) showToast(`Deleted ${ok} streamer${ok !== 1 ? 's' : ''}`, 'success');
+  else            showToast(`Deleted ${ok}, failed ${fail}`, 'error');
+
+  clearSelection();
+  await renderStreamers();
+  updateCounters();
+}
+
 async function renderStreamers() {
   const search    = document.getElementById('sSearch')?.value?.trim()  || '';
   const fStatus   = document.getElementById('fStatus')?.value          || '';
@@ -2069,26 +2345,32 @@ async function renderStreamers() {
   _streamersCache = data.items || [];
   let list = applySort(_streamersCache, 'streamers');
 
-  // Sort header indicators
+  // Sort header indicators (index 0 = checkbox col, so shift by 1)
   const s = _sort['streamers'];
   document.querySelectorAll('#tStreamers th').forEach((th,i) => {
     th.classList.remove('th-a','th-d');
-    const cols = ['nickname','platform','followers','geo','status','manager'];
+    const cols = ['','nickname','platform','followers','geo','status','manager',''];
     if (cols[i] && s?.col === cols[i]) th.classList.add(s?.dir === 1 ? 'th-a' : 'th-d');
   });
 
+  // Clear any stale selections before re-rendering rows
+  clearSelection();
+
   const tbody = document.getElementById('streamersBody');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td class="empty-td" colspan="7">// NO STREAMERS FOUND</td></tr>`;
+    tbody.innerHTML = `<tr><td class="empty-td" colspan="8">// NO STREAMERS FOUND</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(s => `
     <tr onclick="showDetail(${s.id})">
+      <td class="cb-cell no-click" onclick="event.stopPropagation()">
+        <input type="checkbox" class="cb cb-row" data-id="${s.id}" onchange="toggleRowSelect(${s.id},this)">
+      </td>
       <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:#fff;letter-spacing:0.03em;">${esc(s.nickname)}</td>
       <td>${ptag(s.platform)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.followers)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);font-size:11px;">${esc(s.geo)||'—'}</td>
-      <td>${badge(s.status)}</td>
+      <td class="no-click" onclick="event.stopPropagation()">${clickableBadge(s.id, s.status)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.35);font-size:11px;">${esc(s.manager?.full_name)||'—'}</td>
       <td class="no-click" onclick="event.stopPropagation()">
         <div style="display:flex;gap:5px;">
