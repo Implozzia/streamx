@@ -2366,7 +2366,16 @@ async function renderStreamers() {
       <td class="cb-cell no-click" onclick="event.stopPropagation()">
         <input type="checkbox" class="cb cb-row" data-id="${s.id}" onchange="toggleRowSelect(${s.id},this)">
       </td>
-      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:#fff;letter-spacing:0.03em;">${esc(s.nickname)}</td>
+      <td style="font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;">
+        ${s.profile_url
+          ? `<a href="${esc(s.profile_url)}" target="_blank" rel="noopener noreferrer"
+               onclick="event.stopPropagation()"
+               style="color:rgba(0,240,255,0.8);text-decoration:none;transition:color 0.15s;"
+               onmouseover="this.style.textDecoration='underline';this.style.color='#00F0FF';"
+               onmouseout="this.style.textDecoration='none';this.style.color='rgba(0,240,255,0.8)';"
+             >${esc(s.nickname)}<span style="opacity:0.45;font-size:10px;margin-left:3px;">↗</span></a>`
+          : `<span style="color:#fff;">${esc(s.nickname)}</span>`}
+      </td>
       <td>${ptag(s.platform)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.5);font-size:12px;">${fmt(s.followers)}</td>
       <td style="font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);font-size:11px;">${esc(s.geo)||'—'}</td>
