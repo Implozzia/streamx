@@ -144,8 +144,8 @@ async def update_streamer(
     for field, value in updates.items():
         setattr(streamer, field, value)
     await db.flush()
-    await db.refresh(streamer, ["manager"])
-    return streamer
+    await db.refresh(streamer)  # refreshes all expired cols incl. updated_at (onupdate=func.now())
+    return StreamerOut.model_validate(streamer)
 
 
 @router.delete("/{streamer_id}", status_code=status.HTTP_204_NO_CONTENT)
