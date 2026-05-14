@@ -640,7 +640,10 @@
         <div class="label">// ROSTER MANAGEMENT</div>
         <div class="title">Streamers</div>
       </div>
-      <button class="cyber-button btn-c" onclick="openAddStreamer()">+ ADD STREAMER</button>
+      <div style="display:flex;gap:8px;">
+        <button class="cyber-button btn-c" onclick="openBulkAdd()" style="background:rgba(0,240,255,0.08);color:#00F0FF;border:1px solid rgba(0,240,255,0.3);">+ BULK ADD</button>
+        <button class="cyber-button btn-c" onclick="openAddStreamer()">+ ADD STREAMER</button>
+      </div>
     </div>
 
     <div id="streamersListView">
@@ -1098,6 +1101,88 @@
         <button type="button" class="cyber-button btn-c" style="padding:8px 20px;" onclick="saveStreamer()">SAVE STREAMER</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Bulk Add Modal -->
+<div class="overlay" id="mBulkAdd">
+  <div class="mbox" style="width:620px;">
+    <div class="m-head">
+      <span class="m-title">Bulk Add Streamers</span>
+      <button class="m-close" onclick="closeBulkAdd()">×</button>
+    </div>
+
+    <!-- FORM STATE -->
+    <div id="bulkForm">
+      <div style="margin-bottom:14px;">
+        <label class="fl">Profile URLs (one per line) *</label>
+        <textarea class="ci fw" id="bulkUrls" rows="13"
+          placeholder="Paste profile URLs, one per line:&#10;https://tiktok.com/@faustino_trader&#10;https://tiktok.com/@adilson_trader&#10;https://instagram.com/luis_fx&#10;https://t.me/maria_trades&#10;..."
+          oninput="updateBulkCount()"
+          style="resize:vertical;min-height:200px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;"></textarea>
+        <div class="field-err" id="errBulkUrls"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label class="fl">Platform *</label>
+          <select class="ci fw" id="bulkPlatform">
+            <option value="">Select...</option>
+            <option value="TIKTOK">TikTok</option>
+            <option value="INSTAGRAM">Instagram</option>
+            <option value="YOUTUBE">YouTube</option>
+            <option value="TELEGRAM">Telegram</option>
+          </select>
+          <div class="field-err" id="errBulkPlatform"></div>
+        </div>
+        <div>
+          <label class="fl">Geo *</label>
+          <select class="ci fw" id="bulkGeo">
+            <option value="">Select...</option>
+            <option value="LATAM">LATAM</option>
+            <option value="BRASIL">Brasil</option>
+            <option value="ARGENTINA">Argentina</option>
+            <option value="COLOMBIA">Colombia</option>
+            <option value="MEXICO">Mexico</option>
+            <option value="PERU">Peru</option>
+            <option value="CHILE">Chile</option>
+            <option value="ECUADOR">Ecuador</option>
+            <option value="BOLIVIA">Bolivia</option>
+            <option value="PANAMA">Panama</option>
+            <option value="VENEZUELA">Venezuela</option>
+            <option value="ESPANA">España</option>
+            <option value="USA">USA</option>
+            <option value="OTHER">Other</option>
+          </select>
+          <div class="field-err" id="errBulkGeo"></div>
+        </div>
+        <div>
+          <label class="fl">Status</label>
+          <select class="ci fw" disabled style="opacity:0.5;cursor:not-allowed;">
+            <option>NEW</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label class="fl">Notes (applied to all)</label>
+        <input type="text" class="ci fw" id="bulkNotes" placeholder="Optional notes for all entries...">
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(0,240,255,0.4);margin-right:auto;" id="bulkCountLabel">0 URLs</span>
+        <button type="button" class="btn-g" onclick="closeBulkAdd()">CANCEL</button>
+        <button type="button" class="cyber-button btn-c" id="bulkImportBtn" style="padding:8px 20px;" onclick="runBulkImport()">IMPORT 0 URLs</button>
+      </div>
+    </div>
+
+    <!-- RESULTS STATE -->
+    <div id="bulkResults" style="display:none;">
+      <div id="bulkResultsContent" style="margin-bottom:20px;"></div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="button" class="cyber-button btn-c" style="padding:8px 20px;" onclick="finishBulkImport()">DONE</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1587,6 +1672,266 @@ function today() { return new Date().toISOString().split('T')[0]; }
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ===== BULK ADD ===== */
+let _bulkSession   = 0;  // incremented on open/close to invalidate in-flight imports
+let _bulkCreated   = 0;  // set by runBulkImport, read by finishBulkImport
+
+function openBulkAdd() {
+  _bulkSession++;
+  const btn = document.getElementById('bulkImportBtn');
+  btn.disabled    = false;
+  document.getElementById('bulkUrls').value     = '';
+  document.getElementById('bulkPlatform').value = '';
+  document.getElementById('bulkGeo').value      = '';
+  document.getElementById('bulkNotes').value    = '';
+  document.getElementById('errBulkUrls').textContent     = '';
+  document.getElementById('errBulkPlatform').textContent = '';
+  document.getElementById('errBulkGeo').textContent      = '';
+  document.getElementById('bulkPlatform').style.borderColor = '';
+  document.getElementById('bulkGeo').style.borderColor      = '';
+  document.getElementById('bulkForm').style.display    = '';
+  document.getElementById('bulkResults').style.display = 'none';
+  updateBulkCount();
+  openM('mBulkAdd');
+}
+
+function closeBulkAdd() {
+  _bulkSession++; // invalidate any in-flight import so it won't update the DOM after close
+  closeM('mBulkAdd');
+}
+
+// Called by the DONE button — only re-renders the table if something was actually created
+function finishBulkImport() {
+  closeBulkAdd();
+  if (_bulkCreated > 0) {
+    renderStreamers();
+    updateCounters();
+  }
+}
+
+function updateBulkCount() {
+  const urls = parseBulkLines();
+  const n = urls.length;
+  document.getElementById('bulkCountLabel').textContent = n + (n === 1 ? ' URL' : ' URLs');
+  document.getElementById('bulkImportBtn').textContent  = 'IMPORT ' + n + (n === 1 ? ' URL' : ' URLs');
+}
+
+function parseBulkLines() {
+  const raw  = document.getElementById('bulkUrls').value;
+  const seen = new Set();
+  return raw.split('\n')
+    .map(l => l.trim())
+    .filter(l => {
+      if (!l.length || seen.has(l)) return false;
+      seen.add(l);
+      return true;
+    });
+}
+
+function extractNickname(rawUrl) {
+  // Normalize: add protocol if missing so URL can be parsed
+  let s = rawUrl.trim();
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  // Remove trailing slash(es)
+  s = s.replace(/\/+$/, '');
+  let host = '', path = '';
+  try {
+    const u = new URL(s);
+    host = u.hostname.replace(/^www\./i, '').toLowerCase();
+    path = u.pathname;
+  } catch(_) {
+    // Can't parse as URL — use raw value as nickname
+    return rawUrl.trim();
+  }
+
+  const seg = path.split('/').filter(Boolean); // non-empty segments
+
+  if (host.includes('tiktok.com')) {
+    // tiktok.com/@username  →  segment[0] = "@username"
+    const part = seg[0] || '';
+    return part.replace(/^@/, '') || rawUrl.trim();
+  }
+  if (host.includes('instagram.com')) {
+    // instagram.com/username
+    return seg[0] || rawUrl.trim();
+  }
+  if (host.includes('youtube.com')) {
+    // youtube.com/@channel  or  youtube.com/c/channel  or  youtube.com/channel/UCxxx
+    const part = seg[0] || '';
+    if (part.startsWith('@')) return part.slice(1);
+    if (part === 'c' || part === 'channel' || part === 'user') return seg[1] || rawUrl.trim();
+    return part || rawUrl.trim();
+  }
+  if (host.includes('t.me') || host.includes('telegram.me')) {
+    return seg[0] || rawUrl.trim();
+  }
+  // Generic fallback: last non-empty path segment, strip leading @
+  const last = seg[seg.length - 1] || '';
+  return last.replace(/^@/, '') || rawUrl.trim();
+}
+
+async function runBulkImport() {
+  const lines    = parseBulkLines();
+  const platform = document.getElementById('bulkPlatform').value;
+  const geo      = document.getElementById('bulkGeo').value;
+  const notes    = document.getElementById('bulkNotes').value.trim() || null;
+
+  let valid = true;
+  if (!lines.length) {
+    document.getElementById('errBulkUrls').textContent = 'Paste at least one URL';
+    valid = false;
+  } else {
+    document.getElementById('errBulkUrls').textContent = '';
+  }
+  if (!platform) {
+    document.getElementById('errBulkPlatform').textContent = 'Required';
+    document.getElementById('bulkPlatform').style.borderColor = '#FF003C';
+    valid = false;
+  } else {
+    document.getElementById('errBulkPlatform').textContent = '';
+    document.getElementById('bulkPlatform').style.borderColor = '';
+  }
+  if (!geo) {
+    document.getElementById('errBulkGeo').textContent = 'Required';
+    document.getElementById('bulkGeo').style.borderColor = '#FF003C';
+    valid = false;
+  } else {
+    document.getElementById('errBulkGeo').textContent = '';
+    document.getElementById('bulkGeo').style.borderColor = '';
+  }
+  if (!valid) return;
+
+  // Capture session at the moment import starts;
+  // if user closes/reopens modal during import, _bulkSession will differ → we bail out
+  const mySession = _bulkSession;
+
+  // Disable button while running
+  const btn = document.getElementById('bulkImportBtn');
+  btn.disabled    = true;
+  btn.textContent = 'IMPORTING…';
+
+  const results = { created: [], duplicates: [], errors: [] };
+
+  async function processOne(line) {
+    const nickname    = extractNickname(line);
+    const profile_url = line;
+    const payload     = { nickname, profile_url, platform, geo, status: 'NEW', notes };
+    try {
+      await apiClient.post('/streamers', payload);
+      results.created.push(nickname);
+    } catch(err) {
+      if (err.status === 409) {
+        const ex = err.data?.existing || {};
+        results.duplicates.push({
+          nickname,
+          manager: ex.manager?.full_name || 'Unassigned',
+          status:  ex.status || '—',
+        });
+      } else {
+        const msg = typeof err.data?.detail === 'string'
+          ? err.data.detail
+          : (err.status ? 'HTTP ' + err.status : 'Network error');
+        results.errors.push({ line, msg });
+      }
+    }
+  }
+
+  // Concurrency pool: 5 workers, each pulls the next task when done
+  const tasks = lines.map(l => () => processOne(l));
+  async function runPool(queue, limit) {
+    let i = 0;
+    async function next() {
+      if (i >= queue.length) return;
+      const fn = queue[i++];
+      await fn();
+      await next();
+    }
+    const workers = [];
+    for (let w = 0; w < Math.min(limit, queue.length); w++) {
+      workers.push(next());
+    }
+    await Promise.all(workers);
+  }
+  await runPool(tasks, 5);
+
+  // Modal was closed/reset while we were importing — discard results silently
+  if (_bulkSession !== mySession) return;
+
+  // Render results
+  const c = results.created.length;
+  const d = results.duplicates.length;
+  const e = results.errors.length;
+
+  // Store for finishBulkImport's conditional re-render
+  _bulkCreated = c;
+
+  // Server unreachable or all requests failed — surface a toast so user knows what happened
+  if (c === 0 && d === 0 && e > 0) {
+    showToast('Import failed — server unreachable or all requests errored', 'error');
+  }
+
+  let html = `<div style="display:flex;flex-direction:column;gap:14px;">`;
+
+  // Created
+  html += `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(39,201,63,0.06);border:1px solid rgba(39,201,63,0.18);">
+    <span style="font-size:18px;">✅</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#27C93F;font-weight:700;">Created: ${c}</span>
+  </div>`;
+
+  // Duplicates
+  if (d > 0) {
+    const rows = results.duplicates.map(dup =>
+      `<div style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;display:flex;gap:12px;align-items:baseline;">
+        <span style="color:#FCEE0A;font-family:'JetBrains Mono',monospace;">@${esc(dup.nickname)}</span>
+        <span style="color:rgba(255,255,255,0.35);">${esc(dup.manager)}</span>
+        <span style="color:rgba(255,255,255,0.35);">${esc(dup.status)}</span>
+      </div>`
+    ).join('');
+    html += `<details style="padding:12px 14px;background:rgba(252,238,10,0.04);border:1px solid rgba(252,238,10,0.18);">
+      <summary style="cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;outline:none;">
+        <span style="font-size:18px;">⚠️</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FCEE0A;font-weight:700;">Duplicates: ${d}</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.25);margin-left:auto;">▼ expand</span>
+      </summary>
+      <div style="margin-top:10px;">${rows}</div>
+    </details>`;
+  } else {
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(252,238,10,0.04);border:1px solid rgba(252,238,10,0.1);">
+      <span style="font-size:18px;">⚠️</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:rgba(252,238,10,0.5);">Duplicates: 0</span>
+    </div>`;
+  }
+
+  // Errors
+  if (e > 0) {
+    const rows = results.errors.map(er =>
+      `<div style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;">
+        <div style="color:#FF003C;font-family:'JetBrains Mono',monospace;word-break:break-all;">${esc(er.line)}</div>
+        <div style="color:rgba(255,255,255,0.4);margin-top:2px;">${esc(er.msg)}</div>
+      </div>`
+    ).join('');
+    html += `<details style="padding:12px 14px;background:rgba(255,0,60,0.04);border:1px solid rgba(255,0,60,0.18);">
+      <summary style="cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;outline:none;">
+        <span style="font-size:18px;">❌</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF003C;font-weight:700;">Errors: ${e}</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.25);margin-left:auto;">▼ expand</span>
+      </summary>
+      <div style="margin-top:10px;">${rows}</div>
+    </details>`;
+  } else {
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(255,0,60,0.04);border:1px solid rgba(255,0,60,0.1);">
+      <span style="font-size:18px;">❌</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:rgba(255,0,60,0.5);">Errors: 0</span>
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  document.getElementById('bulkResultsContent').innerHTML = html;
+  document.getElementById('bulkForm').style.display    = 'none';
+  document.getElementById('bulkResults').style.display = '';
 }
 
 /* ===== STREAMERS ===== */
