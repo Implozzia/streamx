@@ -1,6 +1,6 @@
 """
 Tools router — analytics & utility endpoints.
-Accessible to: admin, project_manager, analyst (read-only analytics).
+Accessible to: admin, lead, manager.
 """
 from datetime import date
 
@@ -9,7 +9,7 @@ from sqlalchemy import func, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from dependencies import require_any
+from dependencies import require_lead_access
 from models import Lead, LeadStatus, PaymentStatus, Stream, Streamer, User
 
 router = APIRouter()
@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/stats/overview")
 async def overview_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     """High-level KPIs: lead counts by status, streamer counts, revenue totals."""
 
@@ -62,7 +62,7 @@ async def stream_stats(
     date_to: date | None = Query(None),
     streamer_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     """Aggregated stream metrics for a date range."""
     q = select(
@@ -95,7 +95,7 @@ async def stream_stats(
 @router.get("/stats/leads-funnel")
 async def leads_funnel(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     """Conversion funnel: new → contacted → in_process → approved."""
     result = await db.execute(
@@ -116,7 +116,7 @@ async def leads_funnel(
 async def top_streamers(
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     """Top streamers by total paid amount."""
     result = await db.execute(

@@ -51,13 +51,4 @@ def require_roles(*roles: UserRole):
 # Convenience shortcuts
 require_admin = require_roles(UserRole.admin)
 
-require_admin_or_pm = require_roles(UserRole.admin, UserRole.project_manager)
-
-require_lead_access = require_roles(
-    UserRole.admin, UserRole.project_manager, UserRole.lead_manager, UserRole.manager
-)
-
-require_any = require_roles(
-    UserRole.admin, UserRole.project_manager, UserRole.lead_manager,
-    UserRole.analyst, UserRole.manager,
-)
+require_lead_access = require_roles(UserRole.admin, UserRole.lead, UserRole.manager)

@@ -14,9 +14,7 @@ from database import Base
 
 class UserRole(str, enum.Enum):
     admin = "admin"
-    project_manager = "project_manager"
-    lead_manager = "lead_manager"
-    analyst = "analyst"
+    lead = "lead"
     manager = "manager"
 
 

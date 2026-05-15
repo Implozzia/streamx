@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from dependencies import require_any
+from dependencies import require_lead_access
 from models import Schedule, Streamer, User, UserRole
 from schemas import ScheduleCreate, ScheduleOut, ScheduleUpdate
 
@@ -20,7 +20,7 @@ async def list_schedule(
     streamer_id: int | None = None,
     is_active: bool | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     q = select(Schedule).options(
         selectinload(Schedule.streamer).selectinload(Streamer.manager)
@@ -54,7 +54,7 @@ async def list_schedule(
 async def get_schedule(
     schedule_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     result = await db.execute(
         select(Schedule)
@@ -73,11 +73,8 @@ async def get_schedule(
 async def create_schedule(
     body: ScheduleCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role in (UserRole.analyst, UserRole.lead_manager):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
     streamer_result = await db.execute(select(Streamer).where(Streamer.id == body.streamer_id))
     streamer = streamer_result.scalar_one_or_none()
     if not streamer:
@@ -102,11 +99,8 @@ async def update_schedule(
     schedule_id: int,
     body: ScheduleUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role in (UserRole.analyst, UserRole.lead_manager):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
     result = await db.execute(
         select(Schedule)
         .options(selectinload(Schedule.streamer).selectinload(Streamer.manager))
@@ -129,11 +123,8 @@ async def update_schedule(
 async def delete_schedule(
     schedule_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role not in (UserRole.admin, UserRole.project_manager, UserRole.manager):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
     result = await db.execute(
         select(Schedule)
         .options(selectinload(Schedule.streamer))

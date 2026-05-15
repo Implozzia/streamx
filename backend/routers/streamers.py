@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from dependencies import require_any
+from dependencies import require_lead_access
 from models import FunnelStatus, Geo, Platform, Streamer, User, UserRole
 from schemas import StreamerCreate, StreamerOut, StreamerUpdate
 from utils import extract_nickname_from_url
@@ -32,7 +32,7 @@ async def list_streamers(
     manager_id: int | None = None,
     search: str | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     q = select(Streamer).options(selectinload(Streamer.manager))
     q = _apply_manager_filter(q, current_user)
@@ -65,7 +65,7 @@ async def list_streamers(
 async def get_streamer(
     streamer_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
     result = await db.execute(
         select(Streamer).options(selectinload(Streamer.manager)).where(Streamer.id == streamer_id)
@@ -82,11 +82,8 @@ async def get_streamer(
 async def create_streamer(
     body: StreamerCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role in (UserRole.analyst, UserRole.lead_manager):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
     # Antiduplicate check by profile_url
     dup_result = await db.execute(
         select(Streamer)
@@ -131,11 +128,8 @@ async def update_streamer(
     streamer_id: int,
     body: StreamerUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role in (UserRole.analyst, UserRole.lead_manager):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
     result = await db.execute(
         select(Streamer).options(selectinload(Streamer.manager)).where(Streamer.id == streamer_id)
     )
@@ -167,9 +161,9 @@ async def update_streamer(
 async def delete_streamer(
     streamer_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_any),
+    current_user: User = Depends(require_lead_access),
 ):
-    if current_user.role not in (UserRole.admin, UserRole.project_manager):
+    if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     result = await db.execute(select(Streamer).where(Streamer.id == streamer_id))
