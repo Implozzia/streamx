@@ -11,6 +11,7 @@ from database import get_db
 from dependencies import require_any
 from models import FunnelStatus, Geo, Platform, Streamer, User, UserRole
 from schemas import StreamerCreate, StreamerOut, StreamerUpdate
+from utils import extract_nickname_from_url
 
 router = APIRouter()
 
@@ -103,6 +104,13 @@ async def create_streamer(
         )
 
     data = body.model_dump()
+
+    # Always derive nickname from profile_url, ignoring any client-provided value
+    nickname = extract_nickname_from_url(data.get("profile_url") or "")
+    if not nickname:
+        raise HTTPException(status_code=422, detail="Cannot extract nickname from URL")
+    data["nickname"] = nickname
+
     # Auto-assign current user as manager if not explicitly provided
     if not data.get("manager_id"):
         data["manager_id"] = current_user.id
@@ -138,6 +146,13 @@ async def update_streamer(
         raise HTTPException(status_code=403, detail="Access denied")
 
     updates = body.model_dump(exclude_none=True)
+
+    if "profile_url" in updates:
+        nickname = extract_nickname_from_url(updates["profile_url"] or "")
+        if not nickname:
+            raise HTTPException(status_code=422, detail="Cannot extract nickname from URL")
+        updates["nickname"] = nickname
+
     if "status" in updates and updates["status"] != streamer.status:
         updates["last_status_change_at"] = datetime.now(timezone.utc)
 

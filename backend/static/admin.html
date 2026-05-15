@@ -316,8 +316,10 @@
     .b-pause::before   { background:rgba(255,255,255,0.3); }
     .b-dropped { background:rgba(255,0,60,0.1);    color:#FF003C; border:1px solid rgba(255,0,60,0.2);    }
     .b-dropped::before { background:#FF003C; }
-    .b-pending { background:rgba(252,238,10,0.1);  color:#FCEE0A; border:1px solid rgba(252,238,10,0.2);  }
-    .b-pending::before { background:#FCEE0A; }
+    .b-pending  { background:rgba(252,238,10,0.1);  color:#FCEE0A; border:1px solid rgba(252,238,10,0.2);  }
+    .b-pending::before  { background:#FCEE0A; }
+    .b-approval { background:rgba(168,85,247,0.12); color:#A855F7; border:1px solid rgba(168,85,247,0.25); }
+    .b-approval::before { background:#A855F7; }
     .b-paid    { background:rgba(39,201,63,0.1);   color:#27C93F; border:1px solid rgba(39,201,63,0.2);   }
     .b-paid::before    { background:#27C93F; box-shadow:0 0 4px #27C93F; }
 
@@ -700,7 +702,8 @@
           <option value="NEW">New</option>
           <option value="REQUEST_SENT">Request Sent</option>
           <option value="REPLIED">Replied</option>
-          <option value="NEGOTIATING">Negotiating</option>
+          <option value="TALKING">Talking</option>
+          <option value="APPROVAL_PENDING">Approval Pending</option>
           <option value="APPROVED">Approved</option>
           <option value="ACTIVE">Active</option>
           <option value="REJECTED">Rejected</option>
@@ -1084,8 +1087,9 @@
     <form id="formStreamer" novalidate>
       <div class="fg">
         <div class="s1">
-          <label class="fl">Nickname *</label>
-          <input type="text" class="ci fw" id="sNick" placeholder="e.g. xXstreamer99">
+          <label class="fl">Nickname</label>
+          <input type="text" class="ci fw" id="sNick" readonly disabled placeholder="Auto-extracted from URL" style="opacity:0.6;cursor:default;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px;">Auto-extracted from profile URL</div>
           <div class="field-err" id="errNick"></div>
         </div>
         <div class="s1">
@@ -1101,7 +1105,8 @@
         </div>
         <div class="s2">
           <label class="fl">Profile URL *</label>
-          <input type="url" class="ci fw" id="sProfileUrl" placeholder="https://tiktok.com/@username">
+          <input type="url" class="ci fw" id="sProfileUrl" placeholder="https://tiktok.com/@username"
+            oninput="document.getElementById('sNick').value = extractNickname(this.value)">
           <div class="field-err" id="errProfileUrl"></div>
         </div>
         <div class="s1">
@@ -1135,7 +1140,8 @@
             <option value="NEW">🔘 New</option>
             <option value="REQUEST_SENT">📤 Request Sent</option>
             <option value="REPLIED">💬 Replied</option>
-            <option value="NEGOTIATING">🤝 Negotiating</option>
+            <option value="TALKING">🗣 Talking</option>
+            <option value="APPROVAL_PENDING">⏳ Approval Pending</option>
             <option value="APPROVED">✅ Approved</option>
             <option value="ACTIVE">🟢 Active</option>
             <option value="REJECTED">❌ Rejected</option>
@@ -1709,14 +1715,14 @@ function applySort(arr, tbl) {
 
 /* ===== HELPERS ===== */
 const _funnelLabels = {
-  NEW:'New', REQUEST_SENT:'Request Sent', REPLIED:'Replied', NEGOTIATING:'Negotiating',
-  APPROVED:'Approved', ACTIVE:'Active', REJECTED:'Rejected', DEAD:'Dead',
+  NEW:'New', REQUEST_SENT:'Request Sent', REPLIED:'Replied', TALKING:'Talking',
+  APPROVAL_PENDING:'Approval Pending', APPROVED:'Approved', ACTIVE:'Active', REJECTED:'Rejected', DEAD:'Dead',
   // legacy localStorage values (payouts/schedule sections still use these)
   Test:'Test', Pause:'Pause', Dropped:'Dropped', Pending:'Pending', Paid:'Paid',
 };
 const _funnelColors = {
-  NEW:'pause', REQUEST_SENT:'test', REPLIED:'test', NEGOTIATING:'pending',
-  APPROVED:'active', ACTIVE:'active', REJECTED:'dropped', DEAD:'dropped',
+  NEW:'pause', REQUEST_SENT:'test', REPLIED:'test', TALKING:'pending',
+  APPROVAL_PENDING:'approval', APPROVED:'active', ACTIVE:'active', REJECTED:'dropped', DEAD:'dropped',
   Test:'test', Active:'active', Pause:'pause', Dropped:'dropped', Pending:'pending', Paid:'paid',
 };
 function badge(st) {
@@ -1834,8 +1840,7 @@ function extractNickname(rawUrl) {
     host = u.hostname.replace(/^www\./i, '').toLowerCase();
     path = u.pathname;
   } catch(_) {
-    // Can't parse as URL — use raw value as nickname
-    return rawUrl.trim();
+    return '';
   }
 
   const seg = path.split('/').filter(Boolean); // non-empty segments
@@ -1843,25 +1848,25 @@ function extractNickname(rawUrl) {
   if (host.includes('tiktok.com')) {
     // tiktok.com/@username  →  segment[0] = "@username"
     const part = seg[0] || '';
-    return part.replace(/^@/, '') || rawUrl.trim();
+    return part.replace(/^@/, '');
   }
   if (host.includes('instagram.com')) {
     // instagram.com/username
-    return seg[0] || rawUrl.trim();
+    return seg[0] || '';
   }
   if (host.includes('youtube.com')) {
     // youtube.com/@channel  or  youtube.com/c/channel  or  youtube.com/channel/UCxxx
     const part = seg[0] || '';
     if (part.startsWith('@')) return part.slice(1);
-    if (part === 'c' || part === 'channel' || part === 'user') return seg[1] || rawUrl.trim();
-    return part || rawUrl.trim();
+    if (part === 'c' || part === 'channel' || part === 'user') return seg[1] || '';
+    return part;
   }
   if (host.includes('t.me') || host.includes('telegram.me')) {
-    return seg[0] || rawUrl.trim();
+    return seg[0] || '';
   }
   // Generic fallback: last non-empty path segment, strip leading @
   const last = seg[seg.length - 1] || '';
-  return last.replace(/^@/, '') || rawUrl.trim();
+  return last.replace(/^@/, '');
 }
 
 async function runBulkImport() {
@@ -2064,7 +2069,6 @@ async function saveStreamer() {
     inputEl.style.borderColor = msg ? '#FF003C' : '';
     if (msg) valid = false;
   };
-  setErr('errNick',       document.getElementById('sNick'),       nick       ? '' : 'Required');
   setErr('errPlatform',   document.getElementById('sPlatform'),   platform   ? '' : 'Required');
   setErr('errProfileUrl', document.getElementById('sProfileUrl'), profileUrl ? '' : 'Required');
   setErr('errGeo',        document.getElementById('sGeo'),        geo        ? '' : 'Required');
@@ -2123,7 +2127,7 @@ async function _execDelete() {
   }
 }
 /* ===== INLINE STATUS DROPDOWN ===== */
-const _funnelStatuses = ['NEW','REQUEST_SENT','REPLIED','NEGOTIATING','APPROVED','ACTIVE','REJECTED','DEAD'];
+const _funnelStatuses = ['NEW','REQUEST_SENT','REPLIED','TALKING','APPROVAL_PENDING','APPROVED','ACTIVE','REJECTED','DEAD'];
 let _sddTarget = null; // { id, el, oldStatus }
 
 function clickableBadge(id, status) {
