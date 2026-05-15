@@ -3,7 +3,7 @@ from datetime import datetime, date
 
 from sqlalchemy import (
     BigInteger, Boolean, Date, DateTime, Enum, ForeignKey,
-    Integer, Numeric, String, Text, ARRAY, func,
+    Integer, Numeric, String, Text, ARRAY, func, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -86,6 +86,7 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.manager)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # relationships

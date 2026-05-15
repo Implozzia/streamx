@@ -260,6 +260,56 @@
       </div>
     </div>
 
+    <!-- Change Password panel (shown only when must_change_password=true) -->
+    <div class="cyber-panel bg-[#080c11] border border-white/10 p-8 relative hidden" id="changePasswordCard">
+
+      <div class="absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-cyber-yellow/50 via-transparent to-transparent"></div>
+
+      <div class="font-mono text-[10px] text-cyber-yellow tracking-[0.3em] uppercase mb-2 opacity-70 flex items-center gap-2">
+        <span class="w-2 h-2 bg-cyber-yellow rounded-full animate-pulse inline-block"></span>
+        PASSWORD CHANGE REQUIRED
+      </div>
+      <div class="font-mono text-[11px] text-white/40 mb-6">
+        Your account uses a temporary password. Set a permanent password to continue.
+      </div>
+
+      <!-- Error -->
+      <div id="cpError" class="font-mono text-xs text-cyber-magenta mb-4 hidden"></div>
+
+      <div class="mb-4">
+        <label class="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase block mb-2">TEMPORARY PASSWORD</label>
+        <input type="password" id="cpCurrentPwd"
+          class="cyber-input w-full px-4 py-3 text-sm tracking-wider"
+          placeholder="enter the temp password you received"
+          autocomplete="current-password">
+      </div>
+      <div class="mb-4">
+        <label class="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase block mb-2">NEW PASSWORD</label>
+        <input type="password" id="cpNewPwd"
+          class="cyber-input w-full px-4 py-3 text-sm tracking-wider"
+          placeholder="min 8 characters"
+          autocomplete="new-password"
+          onkeydown="if(event.key==='Enter') changePassword()">
+      </div>
+      <div class="mb-6">
+        <label class="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase block mb-2">CONFIRM NEW PASSWORD</label>
+        <input type="password" id="cpConfirmPwd"
+          class="cyber-input w-full px-4 py-3 text-sm tracking-wider"
+          placeholder="repeat new password"
+          autocomplete="new-password"
+          onkeydown="if(event.key==='Enter') changePassword()">
+      </div>
+
+      <button id="cpBtn" onclick="changePassword()"
+        class="cyber-button bg-white text-cyber-black font-tech font-bold uppercase tracking-wider text-sm px-6 py-3 w-full cursor-pointer">
+        SET NEW PASSWORD →
+      </button>
+
+      <div class="mt-6 font-mono text-[10px] text-white/20 tracking-widest text-center">
+        > TEMPORARY PASSWORDS CANNOT BE USED AFTER THIS STEP
+      </div>
+    </div>
+
     <!-- Bottom label -->
     <div class="text-center mt-6 font-mono text-[10px] text-white/10 tracking-[0.2em]">
       STREAMX INTERNAL // EST. 2025
@@ -327,14 +377,80 @@
         localStorage.setItem('sx_jwt', data.access_token);
         if (data.refresh_token) localStorage.setItem('sx_refresh', data.refresh_token);
 
-        btn.textContent = 'ACCESS GRANTED...';
-        document.getElementById('pwdInput').style.borderColor = '#00F0FF';
-        setTimeout(() => { window.location.href = '/admin'; }, 400);
+        if (data.user && data.user.must_change_password) {
+          btn.textContent = 'AUTHENTICATE →';
+          btn.disabled = false;
+          document.getElementById('loginCard').classList.add('hidden');
+          document.getElementById('changePasswordCard').classList.remove('hidden');
+        } else {
+          btn.textContent = 'ACCESS GRANTED...';
+          document.getElementById('pwdInput').style.borderColor = '#00F0FF';
+          setTimeout(() => { window.location.href = '/admin'; }, 400);
+        }
 
       } catch (e) {
         btn.textContent = 'AUTHENTICATE →';
         btn.disabled = false;
         showError('[ERROR] Connection failed — check network');
+      }
+    }
+
+    async function changePassword() {
+      const currentPwd = document.getElementById('cpCurrentPwd').value;
+      const newPwd     = document.getElementById('cpNewPwd').value;
+      const confirmPwd = document.getElementById('cpConfirmPwd').value;
+      const btn        = document.getElementById('cpBtn');
+      const errEl      = document.getElementById('cpError');
+
+      errEl.classList.add('hidden');
+
+      if (!currentPwd || !newPwd || !confirmPwd) {
+        errEl.textContent = '[ERROR] All fields are required';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (newPwd.length < 8) {
+        errEl.textContent = '[ERROR] New password must be at least 8 characters';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (newPwd !== confirmPwd) {
+        errEl.textContent = '[ERROR] New passwords do not match';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.textContent = 'UPDATING...';
+      btn.disabled = true;
+
+      try {
+        const token = localStorage.getItem('sx_jwt');
+        const res = await fetch('/api/users/me/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ current_password: currentPwd, new_password: newPwd }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          btn.textContent = 'SET NEW PASSWORD →';
+          btn.disabled = false;
+          errEl.textContent = '[ERROR] ' + (data?.detail || 'Failed to update password');
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        btn.textContent = 'PASSWORD UPDATED...';
+        setTimeout(() => { window.location.href = '/admin'; }, 400);
+
+      } catch (e) {
+        btn.textContent = 'SET NEW PASSWORD →';
+        btn.disabled = false;
+        errEl.textContent = '[ERROR] Connection failed — check network';
+        errEl.classList.remove('hidden');
       }
     }
   </script>

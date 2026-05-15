@@ -552,6 +552,14 @@
     .badge-btn .dd-arr { font-size:8px; color:rgba(255,255,255,0.2); transition:color 0.15s; }
     .badge-btn:hover .dd-arr { color:rgba(0,240,255,0.6); }
 
+    /* ==== ROLE BADGES ==== */
+    .b-role-admin   { background:rgba(255,0,60,0.1);    color:#FF003C; border:1px solid rgba(255,0,60,0.25); }
+    .b-role-admin::before   { background:#FF003C; }
+    .b-role-lead    { background:rgba(0,240,255,0.08);  color:#00F0FF; border:1px solid rgba(0,240,255,0.2); }
+    .b-role-lead::before    { background:#00F0FF; }
+    .b-role-manager { background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.12); }
+    .b-role-manager::before { background:rgba(255,255,255,0.35); }
+
     /* ==== BULK ACTIONS PANEL ==== */
     #bulkPanel {
       display:none; align-items:center; gap:8px;
@@ -667,6 +675,11 @@
   <div class="nav-item" onclick="showSection('analytics')" data-sec="analytics">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     Analytics
+  </div>
+
+  <div class="nav-item" onclick="showSection('users')" data-sec="users" id="nav-users" style="display:none;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Users
   </div>
 
   <div class="sys-line" style="margin-top:auto;"></div>
@@ -1071,6 +1084,55 @@
       <div id="analyzerResult" style="display:none;"></div>
     </div>
     <div id="analyzerHistory" style="margin-top:24px;"></div>
+  </section>
+
+  <!-- ============ USERS ============ -->
+  <section id="sec-users" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// ACCESS CONTROL</div>
+        <div class="title">Users</div>
+      </div>
+      <button class="cyber-button btn-c" onclick="openAddUser()" id="addUserBtn">+ ADD USER</button>
+    </div>
+
+    <div id="usersDenied" style="display:none;padding:44px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,0,60,0.5);letter-spacing:0.15em;">
+      ACCESS DENIED — ADMIN ONLY
+    </div>
+
+    <div id="usersContent">
+      <div class="filter-bar">
+        <select class="ci" id="uFilterRole" onchange="_usersPage=1;loadUsers()">
+          <option value="">All Roles</option>
+          <option value="admin">Admin</option>
+          <option value="lead">Lead</option>
+          <option value="manager">Manager</option>
+        </select>
+        <select class="ci" id="uFilterActive" onchange="_usersPage=1;loadUsers()">
+          <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Disabled</option>
+        </select>
+      </div>
+
+      <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="tUsers">
+            <thead><tr>
+              <th>Email</th>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th style="cursor:default;">Actions</th>
+            </tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="usersPagination" style="display:flex;align-items:center;gap:10px;margin-top:14px;justify-content:flex-end;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.3);"></div>
+    </div>
   </section>
 
 </main>
@@ -1527,6 +1589,107 @@
   </div>
 </div>
 
+<!-- Add User Modal -->
+<div class="overlay" id="mAddUser">
+  <div class="mbox" style="max-width:440px;">
+    <div class="m-head">
+      <span class="m-title">Add User</span>
+      <button class="m-close" onclick="closeM('mAddUser')">×</button>
+    </div>
+    <div class="fg">
+      <div class="s2">
+        <label class="fl">Email</label>
+        <input class="ci fw" type="email" id="auEmail" placeholder="user@example.com">
+      </div>
+      <div class="s2">
+        <label class="fl">Full Name</label>
+        <input class="ci fw" type="text" id="auFullName" placeholder="Full Name">
+      </div>
+      <div class="s2">
+        <label class="fl">Role</label>
+        <select class="ci fw" id="auRole">
+          <option value="manager">Manager</option>
+          <option value="lead">Lead</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div id="auErr" class="field-err" style="margin-top:10px;min-height:0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px;">
+      <button class="btn-g" onclick="closeM('mAddUser')">Cancel</button>
+      <button class="cyber-button btn-c" onclick="saveAddUser()" style="padding:8px 20px;">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="overlay" id="mEditUser">
+  <div class="mbox" style="max-width:440px;">
+    <div class="m-head">
+      <span class="m-title">Edit User</span>
+      <button class="m-close" onclick="closeM('mEditUser')">×</button>
+    </div>
+    <input type="hidden" id="euId">
+    <div class="fg">
+      <div class="s2">
+        <label class="fl">Full Name</label>
+        <input class="ci fw" type="text" id="euFullName">
+      </div>
+      <div class="s2">
+        <label class="fl">Role</label>
+        <select class="ci fw" id="euRole">
+          <option value="manager">Manager</option>
+          <option value="lead">Lead</option>
+          <option value="admin">Admin</option>
+        </select>
+        <div id="euRoleHint" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);margin-top:5px;letter-spacing:0.08em;">
+          Ask another admin to change your role
+        </div>
+      </div>
+      <div class="s2" id="euActiveGroup">
+        <label class="fl">Status</label>
+        <select class="ci fw" id="euActive">
+          <option value="true">Active</option>
+          <option value="false">Disabled</option>
+        </select>
+      </div>
+    </div>
+    <div id="euErr" class="field-err" style="margin-top:10px;min-height:0;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px;">
+      <button class="btn-g" onclick="closeM('mEditUser')">Cancel</button>
+      <button class="cyber-button btn-c" onclick="saveEditUser()" style="padding:8px 20px;">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Temp Password Modal (no background close, no ESC) -->
+<div class="overlay" id="mTempPassword" data-no-bg-close>
+  <div class="mbox" style="max-width:480px;">
+    <div class="m-head" style="border-bottom:1px solid rgba(252,238,10,0.15);padding-bottom:16px;margin-bottom:22px;">
+      <span class="m-title" style="color:#FCEE0A;" id="tpTitle">User Created</span>
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="margin-bottom:14px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,240,255,0.4);text-transform:uppercase;margin-bottom:4px;">Login</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff;" id="tpEmail"></div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(0,240,255,0.4);text-transform:uppercase;margin-bottom:6px;">Temporary Password</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:#FCEE0A;letter-spacing:0.06em;" id="tpPassword"></span>
+          <button id="tpCopyBtn" onclick="copyTempPassword()" class="btn-g" style="font-size:10px;padding:4px 12px;flex-shrink:0;">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(252,238,10,0.04);border:1px solid rgba(252,238,10,0.15);border-left:3px solid #FCEE0A;padding:12px 14px;margin-bottom:22px;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);line-height:1.7;">
+      This password will only be shown once. Send it to the user — they will be required to change it on first login.
+    </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="cyber-button btn-c" onclick="closeTempPasswordModal()" style="padding:9px 28px;">I've copied it</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- #app -->
 
 <script>
@@ -1582,8 +1745,12 @@ const apiClient = {
   delete(path)     { return this.request('DELETE', path); },
 };
 
+let currentUser     = null;
 let _streamersCache = [];
 let _managersCache  = [];
+let _usersCache     = [];
+let _usersPage      = 1;
+const _usersPageSize = 20;
 
 /* ===== NAV ===== */
 function showSection(name) {
@@ -1600,6 +1767,7 @@ function showSection(name) {
   if (name === 'schedule')  { _schedWeekOff = 0; renderSchedule(); }
   if (name === 'checker')   renderChecker();
   if (name === 'analyzer')  renderAnalyzerHistory();
+  if (name === 'users')     { _usersPage = 1; loadUsers(); }
   updateCounters();
 }
 
@@ -1616,7 +1784,7 @@ function updateCounters() {
 function openM(id)  { document.getElementById(id).classList.add('open'); }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.overlay').forEach(o =>
-  o.addEventListener('click', e => { if (e.target === o) closeM(o.id); })
+  o.addEventListener('click', e => { if (e.target === o && !o.hasAttribute('data-no-bg-close')) closeM(o.id); })
 );
 
 /* ===== TOAST SYSTEM ===== */
@@ -2491,7 +2659,7 @@ function closeDetail() {
 /* ===== MANAGERS ===== */
 async function loadManagers() {
   try {
-    const users = await apiClient.get('/auth/users');
+    const users = await apiClient.get('/users/managers');
     if (!users) return;
     _managersCache = users;
     const opts = users.map(u => `<option value="${u.id}">${esc(u.full_name)}</option>`).join('');
@@ -3302,9 +3470,219 @@ function renderAnalyzerHistory() {
   });
 }
 
+/* ===== USERS ===== */
+
+async function loadUsers() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    document.getElementById('usersContent').style.display = 'none';
+    document.getElementById('usersDenied').style.display = '';
+    document.getElementById('addUserBtn').style.display = 'none';
+    return;
+  }
+
+  const role     = document.getElementById('uFilterRole').value;
+  const isActive = document.getElementById('uFilterActive').value;
+  const params   = new URLSearchParams({ page: _usersPage, size: _usersPageSize });
+  if (role)           params.set('role', role);
+  if (isActive !== '') params.set('is_active', isActive);
+
+  try {
+    const data = await apiClient.get('/users?' + params.toString());
+    if (!data) return;
+    _usersCache = data.items;
+    renderUsersTable(data.items);
+    renderUsersPagination(data.total, data.page, data.pages);
+  } catch(e) {
+    showToast('Failed to load users', 'error');
+  }
+}
+
+function _roleBadge(role) {
+  const map = {
+    admin:   `<span class="badge b-role-admin">Admin</span>`,
+    lead:    `<span class="badge b-role-lead">Lead</span>`,
+    manager: `<span class="badge b-role-manager">Manager</span>`,
+  };
+  return map[role] || esc(role);
+}
+
+function renderUsersTable(users) {
+  const tbody = document.getElementById('usersBody');
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-td">NO USERS FOUND</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const isSelf   = currentUser && u.id === currentUser.id;
+    const rowStyle = u.is_active ? '' : 'opacity:0.5;';
+    const statusBadge = u.is_active
+      ? `<span class="badge b-active">Active</span>`
+      : `<span class="badge b-pause">Disabled</span>`;
+    const created = new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const selfTag = isSelf ? ` <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(0,240,255,0.4);">(you)</span>` : '';
+
+    const editBtn   = `<button class="btn-g" style="font-size:10px;padding:4px 10px;" onclick="openEditUser(${u.id})">✏ Edit</button>`;
+    const resetBtn  = isSelf ? '' : `<button class="btn-g" style="font-size:10px;padding:4px 10px;" onclick="resetUserPassword(${u.id})">🔑 Reset</button>`;
+    const toggleBtn = isSelf ? '' : (u.is_active
+      ? `<button class="btn-r" style="font-size:10px;padding:4px 10px;" onclick="toggleUserActive(${u.id},true)">⊘ Disable</button>`
+      : `<button class="btn-s" style="font-size:10px;padding:4px 10px;" onclick="toggleUserActive(${u.id},false)">✓ Enable</button>`);
+
+    return `<tr class="no-click" style="${rowStyle}">
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${esc(u.email)}</td>
+      <td>${esc(u.full_name)}${selfTag}</td>
+      <td>${_roleBadge(u.role)}</td>
+      <td>${statusBadge}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);">${created}</td>
+      <td><div style="display:flex;gap:6px;align-items:center;">${editBtn}${resetBtn}${toggleBtn}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderUsersPagination(total, page, pages) {
+  const el = document.getElementById('usersPagination');
+  if (pages <= 1) { el.innerHTML = ''; return; }
+  const from = (page - 1) * _usersPageSize + 1;
+  const to   = Math.min(page * _usersPageSize, total);
+  el.innerHTML = `
+    <span>${from}–${to} of ${total}</span>
+    <button class="btn-g" style="font-size:10px;padding:4px 10px;" ${page <= 1 ? 'disabled' : ''} onclick="usersGoPage(${page - 1})">← Prev</button>
+    <span>${page} / ${pages}</span>
+    <button class="btn-g" style="font-size:10px;padding:4px 10px;" ${page >= pages ? 'disabled' : ''} onclick="usersGoPage(${page + 1})">Next →</button>
+  `;
+}
+
+function usersGoPage(p) { _usersPage = p; loadUsers(); }
+
+function openAddUser() {
+  document.getElementById('auEmail').value    = '';
+  document.getElementById('auFullName').value = '';
+  document.getElementById('auRole').value     = 'manager';
+  document.getElementById('auErr').textContent = '';
+  openM('mAddUser');
+}
+
+async function saveAddUser() {
+  const email    = document.getElementById('auEmail').value.trim();
+  const fullName = document.getElementById('auFullName').value.trim();
+  const role     = document.getElementById('auRole').value;
+  const errEl    = document.getElementById('auErr');
+  errEl.textContent = '';
+
+  if (!email || !fullName) { errEl.textContent = 'Email and full name are required'; return; }
+
+  try {
+    const res = await apiClient.post('/users', { email, full_name: fullName, role });
+    if (!res) return;
+    closeM('mAddUser');
+    showTempPasswordModal('User Created', res.user.email, res.temporary_password);
+    loadUsers();
+  } catch(e) {
+    errEl.textContent = e.data?.detail || 'Failed to create user';
+  }
+}
+
+function openEditUser(userId) {
+  const u = _usersCache.find(u => u.id === userId);
+  if (!u) return;
+  const isSelf = currentUser && u.id === currentUser.id;
+
+  document.getElementById('euId').value        = u.id;
+  document.getElementById('euFullName').value   = u.full_name;
+  document.getElementById('euRole').value       = u.role;
+  document.getElementById('euRole').disabled    = isSelf;
+  document.getElementById('euRoleHint').style.display   = isSelf ? '' : 'none';
+  document.getElementById('euActive').value     = String(u.is_active);
+  document.getElementById('euActive').disabled  = isSelf;
+  document.getElementById('euErr').textContent  = '';
+  openM('mEditUser');
+}
+
+async function saveEditUser() {
+  const id       = parseInt(document.getElementById('euId').value);
+  const fullName = document.getElementById('euFullName').value.trim();
+  const errEl    = document.getElementById('euErr');
+  errEl.textContent = '';
+
+  if (!fullName) { errEl.textContent = 'Full name is required'; return; }
+
+  const isSelf  = currentUser && id === currentUser.id;
+  const payload = { full_name: fullName };
+  if (!isSelf) {
+    payload.role      = document.getElementById('euRole').value;
+    payload.is_active = document.getElementById('euActive').value === 'true';
+  }
+
+  try {
+    await apiClient.patch('/users/' + id, payload);
+    closeM('mEditUser');
+    showToast('User updated', 'success');
+    loadUsers();
+  } catch(e) {
+    errEl.textContent = e.data?.detail || 'Failed to update user';
+  }
+}
+
+async function resetUserPassword(userId) {
+  try {
+    const res = await apiClient.post('/users/' + userId + '/reset-password', {});
+    if (!res) return;
+    const u     = _usersCache.find(u => u.id === userId);
+    const email = u ? u.email : String(userId);
+    showTempPasswordModal('Password Reset', email, res.temporary_password);
+  } catch(e) {
+    showToast(e.data?.detail || 'Failed to reset password', 'error');
+  }
+}
+
+async function toggleUserActive(userId, isCurrentlyActive) {
+  try {
+    await apiClient.patch('/users/' + userId, { is_active: !isCurrentlyActive });
+    showToast(isCurrentlyActive ? 'User disabled' : 'User enabled', 'success');
+    loadUsers();
+  } catch(e) {
+    showToast(e.data?.detail || 'Failed to update user', 'error');
+  }
+}
+
+let _tempPasswordValue = '';
+
+function showTempPasswordModal(title, email, password) {
+  _tempPasswordValue = password;
+  document.getElementById('tpTitle').textContent    = title;
+  document.getElementById('tpEmail').textContent    = email;
+  document.getElementById('tpPassword').textContent = password;
+  document.getElementById('tpCopyBtn').textContent  = '📋 Copy';
+  openM('mTempPassword');
+}
+
+function closeTempPasswordModal() {
+  _tempPasswordValue = '';
+  closeM('mTempPassword');
+}
+
+function copyTempPassword() {
+  navigator.clipboard.writeText(_tempPasswordValue).then(() => {
+    const btn = document.getElementById('tpCopyBtn');
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+  }).catch(() => showToast('Copy failed — copy manually', 'error'));
+}
+
+/* ===== INIT ===== */
 (async function init() {
   renderAnalyzerHistory();
   updateCounters();
+
+  // Load current user to gate admin-only features
+  try {
+    currentUser = await apiClient.get('/auth/me');
+  } catch(e) {
+    currentUser = null;
+  }
+  if (currentUser && currentUser.role === 'admin') {
+    document.getElementById('nav-users').style.display = '';
+  }
+
   await loadManagers();
   await renderStreamers();
   updateCounters();

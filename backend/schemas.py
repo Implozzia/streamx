@@ -17,17 +17,14 @@ class OrmBase(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
     full_name: str
     role: UserRole = UserRole.manager
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = None
 
 
 class UserOut(OrmBase):
@@ -36,7 +33,23 @@ class UserOut(OrmBase):
     full_name: str
     role: UserRole
     is_active: bool
+    must_change_password: bool
     created_at: datetime
+
+
+class UserCreateResponse(BaseModel):
+    user: UserOut
+    temporary_password: str
+
+
+class UserPasswordResetResponse(BaseModel):
+    user_id: int
+    temporary_password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class ManagerInfo(OrmBase):

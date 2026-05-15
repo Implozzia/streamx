@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from config import settings
-from routers import auth, streamers, leads, payouts, schedule, tools
+from routers import auth, streamers, leads, payouts, schedule, tools, users
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -35,6 +35,7 @@ app.include_router(leads.router, prefix="/api/leads", tags=["leads"])
 app.include_router(payouts.router, prefix="/api/payouts", tags=["payouts"])
 app.include_router(schedule.router, prefix="/api/schedule", tags=["schedule"])
 app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
 
 
 # ─── Health check ─────────────────────────────────────────────────────────────

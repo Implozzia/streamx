@@ -1,4 +1,6 @@
 import re
+import secrets
+import string
 from urllib.parse import urlparse
 
 
@@ -62,3 +64,15 @@ def extract_nickname_from_url(url: str) -> str:
 
     except Exception:
         return ""
+
+
+_PASSWORD_ALPHABET = string.ascii_letters + string.digits + "!@#$%^&*"
+
+
+def generate_temporary_password(length: int = 12) -> str:
+    """Generate a cryptographically-random temporary password.
+
+    Uses secrets.choice (CSPRNG) over a mixed alphabet of letters,
+    digits, and safe special characters.
+    """
+    return "".join(secrets.choice(_PASSWORD_ALPHABET) for _ in range(length))
