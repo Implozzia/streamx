@@ -19,13 +19,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1. Migrate data for removed/renamed roles (safety net for any prod rows)
+    # 1. Detach column from the native enum type first (→ plain VARCHAR),
+    #    so we can freely assign new values not yet in the enum
+    op.execute("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(50) USING role::VARCHAR")
+
+    # 2. Migrate data for removed/renamed roles (safety net for any prod rows)
     op.execute("UPDATE users SET role = 'admin'   WHERE role = 'project_manager'")
     op.execute("UPDATE users SET role = 'lead'    WHERE role = 'lead_manager'")
     op.execute("UPDATE users SET role = 'manager' WHERE role = 'analyst'")
-
-    # 2. Detach column from the native enum type (→ plain VARCHAR)
-    op.execute("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(50) USING role::VARCHAR")
 
     # 3. Drop the old native enum type
     op.execute("DROP TYPE userrole")
