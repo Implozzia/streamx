@@ -8,6 +8,7 @@ Create Date: 2026-05-21 12:00:00.000000
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "c3a5f8d2e1b7"
@@ -17,17 +18,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 # Declare enums with create_type=False so op.create_table never tries to
 # CREATE TYPE automatically — we manage the type lifecycle explicitly below.
-_poststatus = sa.Enum(
+_poststatus = postgresql.ENUM(
     "draft", "queued", "sending", "sent", "failed", "cancelled",
     name="poststatus",
     create_type=False,
 )
-_deliverystatus = sa.Enum(
+_deliverystatus = postgresql.ENUM(
     "pending", "sent", "failed",
     name="deliverystatus",
     create_type=False,
 )
-_channelcode = sa.Enum(
+_channelcode = postgresql.ENUM(
     "en", "es", "pt",
     name="channelcode",
     create_type=False,
@@ -35,12 +36,20 @@ _channelcode = sa.Enum(
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-
-    # checkfirst=True → no-op if the type already exists (idempotent re-runs)
-    _poststatus.create(bind, checkfirst=True)
-    _deliverystatus.create(bind, checkfirst=True)
-    _channelcode.create(bind, checkfirst=True)
+    # Idempotent enum creation — safe for re-runs after partial failures
+    op.execute(sa.text("""
+        DO $ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'poststatus') THEN
+                CREATE TYPE poststatus AS ENUM ('draft', 'queued', 'sending', 'sent', 'failed', 'cancelled');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'deliverystatus') THEN
+                CREATE TYPE deliverystatus AS ENUM ('pending', 'sent', 'failed');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channelcode') THEN
+                CREATE TYPE channelcode AS ENUM ('en', 'es', 'pt');
+            END IF;
+        END $;
+    """))
 
     op.create_table(
         "posts",
@@ -100,7 +109,6 @@ def downgrade() -> None:
     op.drop_table("post_deliveries")
     op.drop_table("posts")
 
-    bind = op.get_bind()
-    _poststatus.drop(bind, checkfirst=True)
-    _deliverystatus.drop(bind, checkfirst=True)
-    _channelcode.drop(bind, checkfirst=True)
+    op.execute(sa.text("DROP TYPE IF EXISTS channelcode"))
+    op.execute(sa.text("DROP TYPE IF EXISTS deliverystatus"))
+    op.execute(sa.text("DROP TYPE IF EXISTS poststatus"))
