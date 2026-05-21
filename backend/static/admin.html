@@ -578,6 +578,22 @@
     /* ==== ROW CHECKBOXES ==== */
     .cb { width:13px; height:13px; cursor:pointer; accent-color:#00F0FF; }
     .cb-cell { width:36px !important; padding:10px 6px 10px 14px !important; }
+
+    /* ==== POSTING MODULE ==== */
+    .ptab {
+      background:transparent; border:none; border-bottom:2px solid transparent;
+      color:rgba(255,255,255,0.3);
+      font-family:'Chakra Petch',sans-serif; font-size:12px; font-weight:600;
+      text-transform:uppercase; letter-spacing:0.08em;
+      padding:10px 18px; cursor:pointer; transition:all 0.18s;
+      margin-bottom:-1px;
+    }
+    .ptab:hover { color:rgba(255,255,255,0.7); }
+    .ptab.active { color:#00F0FF; border-bottom-color:#00F0FF; }
+    @media(max-width:900px) {
+      .post-lang-grid { grid-template-columns:1fr !important; }
+    }
+    .pimg-drop-hover { border-color:rgba(0,240,255,0.5) !important; background:rgba(0,240,255,0.03) !important; }
   </style>
 </head>
 
@@ -680,6 +696,11 @@
   <div class="nav-item" onclick="showSection('users')" data-sec="users" id="nav-users" style="display:none;">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Users
+  </div>
+
+  <div class="nav-item" onclick="showSection('posting')" data-sec="posting">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Posting
   </div>
 
   <div class="sys-line" style="margin-top:auto;"></div>
@@ -1135,9 +1156,176 @@
     </div>
   </section>
 
+  <!-- ============ POSTING ============ -->
+  <section id="sec-posting" class="section">
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="label">// STOCKITY ACADEMY</div>
+        <div class="title">Posting</div>
+      </div>
+    </div>
+
+    <!-- Sub-tab bar -->
+    <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:22px;">
+      <button class="ptab active" id="ptab-new"     onclick="showPostTab('new')">New Post</button>
+      <button class="ptab"        id="ptab-queue"   onclick="showPostTab('queue')">Queue</button>
+      <button class="ptab"        id="ptab-history" onclick="showPostTab('history')">History</button>
+    </div>
+
+    <!-- ── NEW POST ── -->
+    <div id="pp-new">
+      <!-- 3 language textareas -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;" class="post-lang-grid">
+        <div>
+          <label class="fl">EN — English</label>
+          <textarea class="ci fw" id="ptxt-en" rows="11" oninput="postCharCount('en')" placeholder="English caption…"></textarea>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px;">
+            <span style="color:rgba(255,255,255,0.12);letter-spacing:0.1em;">LIMIT WITH PHOTO: 1024 / WITHOUT: 4096</span>
+            <span><span id="pcc-en" style="color:rgba(255,255,255,0.25);">0</span><span style="color:rgba(255,255,255,0.12);"> / <span id="plimit-en">4096</span></span></span>
+          </div>
+        </div>
+        <div>
+          <label class="fl">ES — Español</label>
+          <textarea class="ci fw" id="ptxt-es" rows="11" oninput="postCharCount('es')" placeholder="Texto en español…"></textarea>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px;">
+            <span style="color:rgba(255,255,255,0.12);letter-spacing:0.1em;">LIMIT WITH PHOTO: 1024 / WITHOUT: 4096</span>
+            <span><span id="pcc-es" style="color:rgba(255,255,255,0.25);">0</span><span style="color:rgba(255,255,255,0.12);"> / <span id="plimit-es">4096</span></span></span>
+          </div>
+        </div>
+        <div>
+          <label class="fl">PT — Português</label>
+          <textarea class="ci fw" id="ptxt-pt" rows="11" oninput="postCharCount('pt')" placeholder="Texto em português…"></textarea>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px;">
+            <span style="color:rgba(255,255,255,0.12);letter-spacing:0.1em;">LIMIT WITH PHOTO: 1024 / WITHOUT: 4096</span>
+            <span><span id="pcc-pt" style="color:rgba(255,255,255,0.25);">0</span><span style="color:rgba(255,255,255,0.12);"> / <span id="plimit-pt">4096</span></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image upload -->
+      <div style="margin-bottom:18px;">
+        <label class="fl">Image — optional (одна на все 3 канала)</label>
+        <div id="pImgDrop" style="border:1px dashed rgba(0,240,255,0.2);padding:24px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;">
+          <input type="file" id="pImgInput" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(0,240,255,0.4);letter-spacing:0.1em;pointer-events:none;">DROP IMAGE HERE OR CLICK TO BROWSE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.12);margin-top:6px;pointer-events:none;">PNG / JPG / GIF / WEBP</div>
+        </div>
+        <div id="pImgPreview" style="display:none;align-items:center;gap:14px;margin-top:8px;padding:12px 14px;background:rgba(0,240,255,0.02);border:1px solid rgba(0,240,255,0.1);">
+          <img id="pImgThumb" style="height:68px;width:68px;object-fit:cover;border:1px solid rgba(255,255,255,0.08);" src="">
+          <div style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);" id="pImgName"></div>
+          <button class="btn-r" onclick="removePostImage()" style="font-size:10px;padding:4px 10px;">Remove</button>
+        </div>
+      </div>
+
+      <!-- Send mode -->
+      <div style="margin-bottom:20px;">
+        <label class="fl">Send mode</label>
+        <div style="display:flex;gap:20px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+            <input type="radio" name="pSendMode" value="now" checked onchange="togglePostSchedule()" style="accent-color:#00F0FF;">
+            Send now
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+            <input type="radio" name="pSendMode" value="schedule" onchange="togglePostSchedule()" style="accent-color:#00F0FF;">
+            Schedule
+          </label>
+        </div>
+        <div id="pScheduleRow" style="display:none;margin-top:12px;">
+          <label class="fl">Date / Time (your local timezone)</label>
+          <input type="datetime-local" class="ci" id="pScheduleAt" style="width:230px;">
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="cyber-button btn-c" onclick="openPostPreview()">Preview</button>
+        <button class="cyber-button btn-c" id="pSubmitBtn" onclick="submitPost()" style="background:#00F0FF !important;color:#030508 !important;">Publish Now</button>
+      </div>
+    </div>
+
+    <!-- ── QUEUE ── -->
+    <div id="pp-queue" style="display:none;">
+      <div style="margin-bottom:14px;">
+        <button class="cyber-button-sm btn-c" onclick="loadPostQueue()" style="padding:5px 14px;">↻ Refresh</button>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Scheduled At</th>
+              <th>Img</th>
+              <th>Preview (EN / ES / PT)</th>
+              <th>Status</th>
+              <th style="cursor:default;">Actions</th>
+            </tr></thead>
+            <tbody id="pQueueBody"><tr><td colspan="5" class="empty-td">LOADING...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div id="pp-history" style="display:none;">
+      <div style="margin-bottom:14px;">
+        <button class="cyber-button-sm btn-c" onclick="loadPostHistory()" style="padding:5px 14px;">↻ Refresh</button>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th>Date</th>
+              <th>Preview</th>
+              <th>Channels</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody id="pHistBody"><tr><td colspan="4" class="empty-td">NO HISTORY YET</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ======== MODALS ======== -->
+
+<!-- Post Preview Modal -->
+<div class="overlay" id="mPostPreview">
+  <div class="mbox" style="width:900px;max-width:96vw;">
+    <div class="m-head">
+      <span class="m-title">Post Preview</span>
+      <button class="m-close" onclick="closeM('mPostPreview')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;" class="post-lang-grid">
+      <div>
+        <div class="fl" style="margin-bottom:8px;">🇬🇧 EN — English</div>
+        <div id="pprev-en" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);padding:14px;min-height:140px;font-size:13px;line-height:1.55;"></div>
+      </div>
+      <div>
+        <div class="fl" style="margin-bottom:8px;">🇪🇸 ES — Español</div>
+        <div id="pprev-es" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);padding:14px;min-height:140px;font-size:13px;line-height:1.55;"></div>
+      </div>
+      <div>
+        <div class="fl" style="margin-bottom:8px;">🇧🇷 PT — Português</div>
+        <div id="pprev-pt" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);padding:14px;min-height:140px;font-size:13px;line-height:1.55;"></div>
+      </div>
+    </div>
+    <div style="margin-top:22px;text-align:right;">
+      <button class="cyber-button btn-c" onclick="closeM('mPostPreview')" style="padding:8px 22px;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Post Detail Modal -->
+<div class="overlay" id="mPostDetail">
+  <div class="mbox" style="width:700px;max-width:96vw;">
+    <div class="m-head">
+      <span class="m-title">Post Detail</span>
+      <button class="m-close" onclick="closeM('mPostDetail')">×</button>
+    </div>
+    <div id="pDetailBody"></div>
+  </div>
+</div>
 
 <!-- Streamer Modal -->
 <div class="overlay" id="mStreamer">
@@ -1768,6 +1956,7 @@ function showSection(name) {
   if (name === 'checker')   renderChecker();
   if (name === 'analyzer')  renderAnalyzerHistory();
   if (name === 'users')     { _usersPage = 1; loadUsers(); }
+  if (name === 'posting')   showPostTab(_postingSubTab || 'new');
   updateCounters();
 }
 
@@ -3668,6 +3857,284 @@ function copyTempPassword() {
   }).catch(() => showToast('Copy failed — copy manually', 'error'));
 }
 
+/* ===== POSTING ===== */
+let _postingSubTab = 'new';
+let _postImg       = null;  // { path, url, name }
+
+function showPostTab(tab) {
+  _postingSubTab = tab;
+  ['new','queue','history'].forEach(t => {
+    document.getElementById('ptab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('pp-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'queue')   loadPostQueue();
+  if (tab === 'history') loadPostHistory();
+}
+
+function postCharCount(lang) {
+  const ta  = document.getElementById('ptxt-' + lang);
+  const cc  = document.getElementById('pcc-' + lang);
+  const lm  = document.getElementById('plimit-' + lang);
+  const limit = _postImg ? 1024 : 4096;
+  const len   = ta.value.length;
+  lm.textContent = limit;
+  cc.textContent  = len;
+  cc.style.color  = len > limit ? '#FF003C' : 'rgba(255,255,255,0.25)';
+}
+
+function _updateAllCharCounts() {
+  ['en','es','pt'].forEach(postCharCount);
+}
+
+function togglePostSchedule() {
+  const isSchedule = document.querySelector('input[name="pSendMode"]:checked').value === 'schedule';
+  document.getElementById('pScheduleRow').style.display = isSchedule ? 'block' : 'none';
+  document.getElementById('pSubmitBtn').textContent = isSchedule ? 'Schedule' : 'Publish Now';
+}
+
+/* — Image drag & drop — */
+function _initPostDrop() {
+  const zone = document.getElementById('pImgDrop');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('pimg-drop-hover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('pimg-drop-hover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('pimg-drop-hover');
+    const f = e.dataTransfer.files[0]; if (f) _handlePostFile(f);
+  });
+  document.getElementById('pImgInput').addEventListener('change', e => {
+    if (e.target.files[0]) _handlePostFile(e.target.files[0]);
+  });
+}
+
+async function _handlePostFile(file) {
+  if (!file.type.startsWith('image/')) { showToast('Only image files allowed', 'error'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiClient.token() },
+      body: fd,
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.detail || res.statusText); }
+    const data = await res.json();
+    _postImg = { ...data, name: file.name };
+    document.getElementById('pImgThumb').src = data.url;
+    document.getElementById('pImgName').textContent = file.name;
+    document.getElementById('pImgPreview').style.display = 'flex';
+    document.getElementById('pImgDrop').style.display    = 'none';
+    _updateAllCharCounts();
+  } catch(e) {
+    showToast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+function removePostImage() {
+  _postImg = null;
+  document.getElementById('pImgPreview').style.display = 'none';
+  document.getElementById('pImgDrop').style.display    = 'flex';
+  document.getElementById('pImgInput').value = '';
+  _updateAllCharCounts();
+}
+
+/* — Preview modal — */
+function openPostPreview() {
+  const en = document.getElementById('ptxt-en').value;
+  const es = document.getElementById('ptxt-es').value;
+  const pt = document.getElementById('ptxt-pt').value;
+  if (!en.trim() && !es.trim() && !pt.trim()) { showToast('Enter at least one text', 'error'); return; }
+  const imgHtml = _postImg
+    ? `<img src="${_postImg.url}" style="width:100%;max-height:180px;object-fit:cover;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06);">`
+    : '';
+  [['en',en],['es',es],['pt',pt]].forEach(([lang, text]) => {
+    document.getElementById('pprev-' + lang).innerHTML =
+      imgHtml +
+      `<div style="white-space:pre-wrap;color:rgba(255,255,255,0.8);">${_escHtml(text) || '<span style="color:rgba(255,255,255,0.18)">[empty]</span>'}</div>`;
+  });
+  openM('mPostPreview');
+}
+
+function _escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* — Submit — */
+async function submitPost() {
+  const en = document.getElementById('ptxt-en').value.trim();
+  const es = document.getElementById('ptxt-es').value.trim();
+  const pt = document.getElementById('ptxt-pt').value.trim();
+  if (!en && !es && !pt) { showToast('Enter at least one text', 'error'); return; }
+
+  const mode = document.querySelector('input[name="pSendMode"]:checked').value;
+  const body = { text_en: en, text_es: es, text_pt: pt, image_path: _postImg ? _postImg.path : null };
+
+  if (mode === 'now') {
+    body.send_now = true;
+  } else {
+    const dt = document.getElementById('pScheduleAt').value;
+    if (!dt) { showToast('Pick a date/time to schedule', 'error'); return; }
+    body.scheduled_at = new Date(dt).toISOString();
+  }
+
+  const btn = document.getElementById('pSubmitBtn');
+  btn.disabled = true; btn.textContent = '...';
+
+  try {
+    await apiClient.post('/admin/posts', body);
+    showToast(mode === 'now' ? 'Post queued for sending!' : 'Post scheduled!', 'success');
+    ['en','es','pt'].forEach(l => { document.getElementById('ptxt-'+l).value=''; postCharCount(l); });
+    removePostImage();
+    document.getElementById('pScheduleAt').value = '';
+    document.querySelector('input[name="pSendMode"][value="now"]').checked = true;
+    togglePostSchedule();
+    if (mode !== 'now') showPostTab('queue');
+  } catch(e) {
+    showToast('Error: ' + (e.data?.detail || JSON.stringify(e.data) || 'request failed'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = document.querySelector('input[name="pSendMode"]:checked').value === 'schedule' ? 'Schedule' : 'Publish Now';
+  }
+}
+
+/* — Queue — */
+async function loadPostQueue() {
+  const tbody = document.getElementById('pQueueBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty-td">LOADING...</td></tr>';
+  try {
+    const data = await apiClient.get('/admin/posts?status=queued&size=100');
+    if (!data || !data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-td">NO SCHEDULED POSTS</td></tr>'; return;
+    }
+    tbody.innerHTML = data.items.map(p => `
+      <tr class="no-click">
+        <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${_fmtDt(p.scheduled_at)}</span></td>
+        <td>${p.image_path ? '<span style="color:#00F0FF;font-size:13px;" title="Has image">🖼</span>' : ''}</td>
+        <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${_escHtml((p.text_en||p.text_es||p.text_pt||'').substring(0,70))}</td>
+        <td><span class="badge b-pending">QUEUED</span></td>
+        <td style="white-space:nowrap;">
+          <button class="btn-r" style="font-size:10px;padding:3px 10px;" onclick="cancelPost(${p.id},this)">Cancel</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-td">ERROR LOADING</td></tr>';
+  }
+}
+
+async function cancelPost(id, btn) {
+  if (!confirm('Cancel this scheduled post?')) return;
+  const orig = btn.textContent; btn.disabled = true; btn.textContent = '...';
+  try {
+    await apiClient.delete('/admin/posts/' + id);
+    showToast('Post cancelled', 'success');
+    loadPostQueue();
+  } catch(e) {
+    showToast('Error: ' + (e.data?.detail || 'request failed'), 'error');
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+/* — History — */
+async function loadPostHistory() {
+  const tbody = document.getElementById('pHistBody');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-td">LOADING...</td></tr>';
+  try {
+    const data = await apiClient.get('/admin/posts?status=sent,failed,sending,cancelled&size=100');
+    if (!data || !data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-td">NO HISTORY YET</td></tr>'; return;
+    }
+    tbody.innerHTML = data.items.map(p => `
+      <tr onclick="openPostDetail(${p.id})">
+        <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${_fmtDt(p.created_at)}</span></td>
+        <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${_escHtml((p.text_en||p.text_es||p.text_pt||'').substring(0,70))}</td>
+        <td>${_renderDeliveryBadges(p.deliveries)}</td>
+        <td>${_postStatusBadge(p.status)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-td">ERROR LOADING</td></tr>';
+  }
+}
+
+function _renderDeliveryBadges(deliveries) {
+  if (!deliveries || !deliveries.length) return '';
+  return deliveries.map(d => {
+    const c = d.status==='sent'?'#27C93F': d.status==='failed'?'#FF003C':'#FCEE0A';
+    const bg= d.status==='sent'?'rgba(39,201,63,0.1)': d.status==='failed'?'rgba(255,0,60,0.1)':'rgba(252,238,10,0.08)';
+    return `<span style="font-family:'JetBrains Mono';font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border:1px solid ${c};color:${c};background:${bg};margin-right:3px;">${d.channel_code.toUpperCase()}</span>`;
+  }).join('');
+}
+
+function _postStatusBadge(s) {
+  const m = {sent:'b-active',failed:'b-dropped',queued:'b-pending',sending:'b-test',draft:'b-pause',cancelled:'b-pause'};
+  return `<span class="badge ${m[s]||'b-pause'}">${s.toUpperCase()}</span>`;
+}
+
+/* — Post detail modal — */
+async function openPostDetail(id) {
+  document.getElementById('pDetailBody').innerHTML = '<div style="text-align:center;padding:30px;font-family:\'JetBrains Mono\',monospace;font-size:11px;color:rgba(255,255,255,0.2);">LOADING...</div>';
+  openM('mPostDetail');
+  try {
+    const p = await apiClient.get('/admin/posts/' + id);
+    const deliveryRows = (p.deliveries||[]).map(d => `
+      <tr class="no-click">
+        <td style="font-family:'JetBrains Mono';font-size:11px;font-weight:700;text-transform:uppercase;">${d.channel_code}</td>
+        <td>${d.status==='sent'?'<span class="badge b-active">SENT</span>': d.status==='failed'?'<span class="badge b-dropped">FAILED</span>':'<span class="badge b-pending">PENDING</span>'}</td>
+        <td style="font-family:'JetBrains Mono';font-size:10px;color:rgba(255,255,255,0.35);">${_fmtDt(d.sent_at)}</td>
+        <td style="font-size:11px;color:#FF003C;max-width:200px;word-break:break-all;">${d.error||''}</td>
+        <td>${d.status==='failed'?`<button class="btn-s" style="font-size:10px;padding:3px 9px;" onclick="retryDelivery(${p.id},${d.id})">Retry</button>`:''}</td>
+      </tr>`).join('');
+    document.getElementById('pDetailBody').innerHTML = `
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        ${_postStatusBadge(p.status)}
+        <span style="font-family:'JetBrains Mono';font-size:10px;color:rgba(255,255,255,0.3);">${_fmtDt(p.created_at)}</span>
+        ${p.scheduled_at?`<span style="font-family:'JetBrains Mono';font-size:10px;color:rgba(0,240,255,0.4);">Scheduled: ${_fmtDt(p.scheduled_at)}</span>`:''}
+      </div>
+      ${p.image_path?`<img src="/uploads/${p.image_path}" style="max-height:140px;max-width:100%;object-fit:cover;margin-bottom:14px;border:1px solid rgba(255,255,255,0.08);">`:''}
+      ${['en','es','pt'].map(l=>p['text_'+l]?`<div style="margin-bottom:12px;"><div class="fl">${l.toUpperCase()}</div><div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);padding:10px 12px;font-size:12px;white-space:pre-wrap;color:rgba(255,255,255,0.7);max-height:160px;overflow-y:auto;">${_escHtml(p['text_'+l])}</div></div>`:'').join('')}
+      <div style="margin-top:16px;">
+        <div class="fl">DELIVERY STATUS</div>
+        <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+          <table class="data-table"><thead><tr><th>Channel</th><th>Status</th><th>Sent At</th><th>Error</th><th style="cursor:default;"></th></tr></thead>
+          <tbody>${deliveryRows||'<tr><td colspan="5" class="empty-td">NO DELIVERIES</td></tr>'}</tbody></table>
+        </div>
+      </div>
+      ${['sent','sending'].includes(p.status)?'':
+        `<div style="margin-top:16px;text-align:right;">
+          <button class="cyber-button-sm btn-c" onclick="sendPostNow(${p.id})" style="padding:6px 16px;">Send Now</button>
+        </div>`}`;
+  } catch(e) {
+    document.getElementById('pDetailBody').innerHTML = '<div style="color:#FF003C;font-family:\'JetBrains Mono\',monospace;font-size:11px;">ERROR LOADING POST</div>';
+  }
+}
+
+async function retryDelivery(postId, deliveryId) {
+  try {
+    await apiClient.post(`/admin/posts/${postId}/retry-delivery/${deliveryId}`);
+    showToast('Retry initiated', 'success');
+    closeM('mPostDetail');
+    loadPostHistory();
+  } catch(e) {
+    showToast('Retry failed: ' + (e.data?.detail||''), 'error');
+  }
+}
+
+async function sendPostNow(postId) {
+  try {
+    await apiClient.post('/admin/posts/' + postId + '/send-now');
+    showToast('Sending…', 'success');
+    closeM('mPostDetail');
+    showPostTab('history');
+  } catch(e) {
+    showToast('Error: ' + (e.data?.detail||''), 'error');
+  }
+}
+
+function _fmtDt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
 /* ===== INIT ===== */
 (async function init() {
   renderAnalyzerHistory();
@@ -3686,6 +4153,7 @@ function copyTempPassword() {
   await loadManagers();
   await renderStreamers();
   updateCounters();
+  _initPostDrop();
 })();
 </script>
 </body>

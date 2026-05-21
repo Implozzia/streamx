@@ -18,12 +18,27 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = Field(..., description="Admin password from Railway env")
     ADMIN_FULL_NAME: str = "Administrator"
 
+    # ── Telegram Posting ──────────────────────────────────────────────────────
+    BOT_TOKEN: str = ""
+    CHANNEL_EN: str = "@stockity_en"
+    CHANNEL_ES: str = "@stockity_es"
+    CHANNEL_PT: str = "@stockity_pt"
+    UPLOAD_DIR: str = "./uploads"
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def fix_db_url_scheme(cls, v: str) -> str:
         if v.startswith("postgresql://"):
             return "postgresql+asyncpg://" + v[len("postgresql://"):]
         return v
+
+    @property
+    def sync_database_url(self) -> str:
+        """Synchronous DB URL for APScheduler SQLAlchemyJobStore (uses psycopg2)."""
+        url = self.DATABASE_URL
+        if "+asyncpg" in url:
+            return url.replace("+asyncpg", "")
+        return url
 
     @property
     def origins(self) -> list[str]:

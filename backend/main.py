@@ -1,13 +1,29 @@
+import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from routers import auth, streamers, leads, payouts, schedule, tools, users
+from posting import router as posting_router
 
 BASE_DIR = Path(__file__).resolve().parent
+
+# Ensure uploads directory exists before mounting
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from posting.scheduler import start_scheduler, shutdown_scheduler
+    await start_scheduler()
+    yield
+    await shutdown_scheduler()
+
 
 app = FastAPI(
     title="StreamX API",
@@ -15,6 +31,7 @@ app = FastAPI(
     description="Backend for StreamX streamer management platform",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -36,6 +53,10 @@ app.include_router(payouts.router, prefix="/api/payouts", tags=["payouts"])
 app.include_router(schedule.router, prefix="/api/schedule", tags=["schedule"])
 app.include_router(tools.router, prefix="/api/tools", tags=["tools"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(posting_router.router, prefix="/api/admin", tags=["posting"])
+
+# Serve uploaded images
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 # ─── Health check ─────────────────────────────────────────────────────────────

@@ -75,6 +75,27 @@ class PaymentStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
+class PostStatus(str, enum.Enum):
+    draft = "draft"
+    queued = "queued"
+    sending = "sending"
+    sent = "sent"
+    failed = "failed"
+    cancelled = "cancelled"
+
+
+class DeliveryStatus(str, enum.Enum):
+    pending = "pending"
+    sent = "sent"
+    failed = "failed"
+
+
+class ChannelCode(str, enum.Enum):
+    en = "en"
+    es = "es"
+    pt = "pt"
+
+
 # ─── Models ──────────────────────────────────────────────────────────────────
 
 class User(Base):
@@ -187,3 +208,47 @@ class Schedule(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     streamer: Mapped["Streamer"] = relationship("Streamer", back_populates="schedule")
+
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    text_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    text_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    text_pt: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[PostStatus] = mapped_column(
+        Enum(PostStatus), nullable=False, default=PostStatus.draft
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    deliveries: Mapped[list["PostDelivery"]] = relationship(
+        "PostDelivery", back_populates="post", cascade="all, delete-orphan"
+    )
+
+
+class PostDelivery(Base):
+    __tablename__ = "post_deliveries"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    post_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False
+    )
+    channel_code: Mapped[ChannelCode] = mapped_column(Enum(ChannelCode), nullable=False)
+    channel_chat_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    telegram_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    status: Mapped[DeliveryStatus] = mapped_column(
+        Enum(DeliveryStatus), nullable=False, default=DeliveryStatus.pending
+    )
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    post: Mapped["Post"] = relationship("Post", back_populates="deliveries")
