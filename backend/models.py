@@ -231,7 +231,7 @@ class Post(Base):
     )
 
     deliveries: Mapped[list["PostDelivery"]] = relationship(
-        "PostDelivery", back_populates="post", cascade="all, delete-orphan"
+        "PostDelivery", back_populates="post", cascade="all, delete-orphan", lazy="selectin"
     )
 
 

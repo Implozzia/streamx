@@ -12,7 +12,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from config import settings
 from database import get_db
@@ -91,9 +90,7 @@ def _create_deliveries(post: Post) -> None:
 
 async def _get_post_or_404(post_id: int, db: AsyncSession) -> Post:
     result = await db.execute(
-        select(Post)
-        .options(selectinload(Post.deliveries))
-        .where(Post.id == post_id)
+        select(Post).where(Post.id == post_id)
     )
     post = result.scalar_one_or_none()
     if not post:
@@ -171,7 +168,7 @@ async def list_posts(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    q = select(Post).options(selectinload(Post.deliveries))
+    q = select(Post)
 
     if status:
         statuses = [s.strip() for s in status.split(",") if s.strip()]

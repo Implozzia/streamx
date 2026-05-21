@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from telegram import Bot
 from telegram.error import TelegramError
 
@@ -29,9 +28,7 @@ _CHANNEL_TEXT: dict[str, str] = {
 async def publish_post(post_id: int) -> None:
     async with AsyncSessionLocal() as db:
         result = await db.execute(
-            select(Post)
-            .options(selectinload(Post.deliveries))
-            .where(Post.id == post_id)
+            select(Post).where(Post.id == post_id)
         )
         post = result.scalar_one_or_none()
 
