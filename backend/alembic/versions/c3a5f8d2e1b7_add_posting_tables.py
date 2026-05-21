@@ -15,21 +15,33 @@ down_revision: Union[str, None] = "b9eeb98702e0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+# Declare enums with create_type=False so op.create_table never tries to
+# CREATE TYPE automatically — we manage the type lifecycle explicitly below.
+_poststatus = sa.Enum(
+    "draft", "queued", "sending", "sent", "failed", "cancelled",
+    name="poststatus",
+    create_type=False,
+)
+_deliverystatus = sa.Enum(
+    "pending", "sent", "failed",
+    name="deliverystatus",
+    create_type=False,
+)
+_channelcode = sa.Enum(
+    "en", "es", "pt",
+    name="channelcode",
+    create_type=False,
+)
+
 
 def upgrade() -> None:
-    # 1. Create PostgreSQL enum types
-    op.execute(
-        "CREATE TYPE poststatus AS ENUM "
-        "('draft', 'queued', 'sending', 'sent', 'failed', 'cancelled')"
-    )
-    op.execute(
-        "CREATE TYPE deliverystatus AS ENUM ('pending', 'sent', 'failed')"
-    )
-    op.execute(
-        "CREATE TYPE channelcode AS ENUM ('en', 'es', 'pt')"
-    )
+    bind = op.get_bind()
 
-    # 2. posts
+    # checkfirst=True → no-op if the type already exists (idempotent re-runs)
+    _poststatus.create(bind, checkfirst=True)
+    _deliverystatus.create(bind, checkfirst=True)
+    _channelcode.create(bind, checkfirst=True)
+
     op.create_table(
         "posts",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
@@ -38,15 +50,7 @@ def upgrade() -> None:
         sa.Column("text_pt", sa.Text(), nullable=False, server_default=""),
         sa.Column("image_path", sa.String(500), nullable=True),
         sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum(
-                "draft", "queued", "sending", "sent", "failed", "cancelled",
-                name="poststatus", create_type=False,
-            ),
-            nullable=False,
-            server_default="draft",
-        ),
+        sa.Column("status", _poststatus, nullable=False, server_default="draft"),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -67,7 +71,6 @@ def upgrade() -> None:
         ),
     )
 
-    # 3. post_deliveries
     op.create_table(
         "post_deliveries",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
@@ -77,22 +80,10 @@ def upgrade() -> None:
             sa.ForeignKey("posts.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "channel_code",
-            sa.Enum("en", "es", "pt", name="channelcode", create_type=False),
-            nullable=False,
-        ),
+        sa.Column("channel_code", _channelcode, nullable=False),
         sa.Column("channel_chat_id", sa.String(100), nullable=False),
         sa.Column("telegram_message_id", sa.BigInteger(), nullable=True),
-        sa.Column(
-            "status",
-            sa.Enum(
-                "pending", "sent", "failed",
-                name="deliverystatus", create_type=False,
-            ),
-            nullable=False,
-            server_default="pending",
-        ),
+        sa.Column("status", _deliverystatus, nullable=False, server_default="pending"),
         sa.Column("error", sa.Text(), nullable=True),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
     )
@@ -108,6 +99,8 @@ def downgrade() -> None:
     op.drop_index("ix_posts_status", "posts")
     op.drop_table("post_deliveries")
     op.drop_table("posts")
-    op.execute("DROP TYPE poststatus")
-    op.execute("DROP TYPE deliverystatus")
-    op.execute("DROP TYPE channelcode")
+
+    bind = op.get_bind()
+    _poststatus.drop(bind, checkfirst=True)
+    _deliverystatus.drop(bind, checkfirst=True)
+    _channelcode.drop(bind, checkfirst=True)
