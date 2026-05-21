@@ -11,6 +11,10 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/l10n/ru.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -594,6 +598,44 @@
       .post-lang-grid { grid-template-columns:1fr !important; }
     }
     .pimg-drop-hover { border-color:rgba(0,240,255,0.5) !important; background:rgba(0,240,255,0.03) !important; }
+
+    /* ==== FLATPICKR CYBERPUNK OVERRIDE ==== */
+    .flatpickr-calendar {
+      background: #080c11 !important;
+      border: 1px solid rgba(0,240,255,0.18) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.8) !important;
+      border-radius: 0 !important;
+      font-family: 'Chakra Petch', sans-serif !important;
+    }
+    .flatpickr-calendar::before, .flatpickr-calendar::after { display: none !important; }
+    .flatpickr-months { background: #030508 !important; border-bottom: 1px solid rgba(0,240,255,0.1) !important; }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month,
+    .flatpickr-current-month .cur-month,
+    .flatpickr-current-month input.cur-year { color: #00F0FF !important; fill: #00F0FF !important; background: transparent !important; }
+    .flatpickr-current-month input.cur-year { font-family: 'JetBrains Mono', monospace !important; font-size: 13px !important; }
+    .flatpickr-prev-month, .flatpickr-next-month { color: rgba(0,240,255,0.5) !important; fill: rgba(0,240,255,0.5) !important; }
+    .flatpickr-prev-month:hover, .flatpickr-next-month:hover { color: #00F0FF !important; fill: #00F0FF !important; }
+    .flatpickr-weekdays { background: #030508 !important; }
+    .flatpickr-weekday { color: rgba(0,240,255,0.4) !important; background: transparent !important;
+      font-family: 'JetBrains Mono', monospace !important; font-size: 9px !important; letter-spacing: 0.1em; }
+    .flatpickr-day { color: rgba(255,255,255,0.6) !important; border-radius: 0 !important;
+      font-family: 'Chakra Petch', sans-serif !important; font-size: 12px !important; border: none !important; }
+    .flatpickr-day:hover { background: rgba(0,240,255,0.1) !important; color: #00F0FF !important; }
+    .flatpickr-day.today { border-bottom: 2px solid rgba(0,240,255,0.4) !important; }
+    .flatpickr-day.today:hover { background: rgba(0,240,255,0.1) !important; }
+    .flatpickr-day.selected, .flatpickr-day.selected:hover {
+      background: #00F0FF !important; color: #030508 !important; font-weight: 700 !important; }
+    .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover {
+      color: rgba(255,255,255,0.12) !important; }
+    .flatpickr-time { background: #030508 !important; border-top: 1px solid rgba(0,240,255,0.1) !important; }
+    .flatpickr-time input, .flatpickr-time .flatpickr-time-separator {
+      color: #00F0FF !important; font-family: 'JetBrains Mono', monospace !important;
+      font-size: 15px !important; background: transparent !important; }
+    .flatpickr-time input:hover, .flatpickr-time input:focus { background: rgba(0,240,255,0.06) !important; }
+    .numInputWrapper span.arrowUp::after  { border-bottom-color: rgba(0,240,255,0.5) !important; }
+    .numInputWrapper span.arrowDown::after { border-top-color: rgba(0,240,255,0.5) !important; }
+    .flatpickr-input { cursor: pointer !important; }
   </style>
 </head>
 
@@ -1232,7 +1274,7 @@
         </div>
         <div id="pScheduleRow" style="display:none;margin-top:12px;">
           <label class="fl">Date / Time (your local timezone)</label>
-          <input type="datetime-local" class="ci" id="pScheduleAt" style="width:230px;">
+          <input type="text" class="ci" id="pScheduleAt" placeholder="дд/мм/гггг чч:мм" style="width:220px;" readonly>
         </div>
       </div>
 
@@ -3893,9 +3935,21 @@ function togglePostSchedule() {
 }
 
 /* — Image drag & drop — */
+let _schedulePicker = null;
+
 function _initPostDrop() {
   const zone = document.getElementById('pImgDrop');
   if (!zone) return;
+
+  // Flatpickr для поля расписания
+  _schedulePicker = flatpickr('#pScheduleAt', {
+    enableTime: true,
+    time_24hr: true,
+    dateFormat: 'd/m/Y H:i',
+    minDate: 'today',
+    locale: 'ru',
+    minuteIncrement: 5,
+  });
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('pimg-drop-hover'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('pimg-drop-hover'));
   zone.addEventListener('drop', e => {
@@ -3972,9 +4026,9 @@ async function submitPost() {
   if (mode === 'now') {
     body.send_now = true;
   } else {
-    const dt = document.getElementById('pScheduleAt').value;
-    if (!dt) { showToast('Pick a date/time to schedule', 'error'); return; }
-    body.scheduled_at = new Date(dt).toISOString();
+    const dates = _schedulePicker && _schedulePicker.selectedDates;
+    if (!dates || !dates.length) { showToast('Выберите дату и время', 'error'); return; }
+    body.scheduled_at = dates[0].toISOString();
   }
 
   const btn = document.getElementById('pSubmitBtn');
@@ -3985,7 +4039,7 @@ async function submitPost() {
     showToast(mode === 'now' ? 'Post queued for sending!' : 'Post scheduled!', 'success');
     ['en','es','pt'].forEach(l => { document.getElementById('ptxt-'+l).value=''; postCharCount(l); });
     removePostImage();
-    document.getElementById('pScheduleAt').value = '';
+    if (_schedulePicker) _schedulePicker.clear();
     document.querySelector('input[name="pSendMode"][value="now"]').checked = true;
     togglePostSchedule();
     if (mode !== 'now') showPostTab('queue');
